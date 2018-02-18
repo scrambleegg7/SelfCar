@@ -18,6 +18,7 @@ My final goals / steps of this 1st project of SelfCar driving are the following:
 [gauss1]: ./test_gauss_images/solidWhiteCurve.jpg
 [canny1]: ./test_canny_images/solidWhiteCurve.jpg
 [masked]: ./test_masked_images/solidWhiteCurve.jpg
+[houghoriginal]: ./test_hough_originalline_images/solidWhiteCurve.jpg
 [hough]: ./test_hough_images/solidWhiteCurve.jpg
 [blend]: ./test_combine_images/solidWhiteCurve.jpg
 
@@ -51,6 +52,8 @@ Area which I defined is hard-coded triangle one in where the center of area is s
 
 ![masked][masked]
 
+
+
 then apply hough helper function to detec the lane line from cannied image (step3)image. I have tuned and applied below parameters to hough helper function after spending time to find best combination of parameters. 
 
 ```
@@ -60,6 +63,11 @@ threshold = 10
 min_line_length = 30
 max_line_gap = 1
 ```  
+![masked][houghoriginal]
+
+At first step to apply non-customized draw_line function, 2 lane lines are separatelly fragmented with several pieces. Either one of lines is not complete style as what we wanted to see as one straight line from the bottom of the image. 
+Thus I have designed simple interpolate function (using polyfit) to extend lines.
+
 
 ![masked][hough]
 
