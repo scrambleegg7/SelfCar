@@ -1,2 +1,6 @@
 *.mp4
+*.jpg
+test*/
 .ipynb_checkpoints/
+.DS_Store/
+.DS_Store
