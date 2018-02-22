@@ -15,14 +15,8 @@ from skimage.color import gray2rgb, rgb2gray
 from lenet2 import LeNet
 from trafficSignData import SignImageClass
 
-# TODO: Fill this in based on where you saved the training and testing data
+from tfRecordHandlerClass import tfRecordHandlerClass
 
-
-
-def image_data_load():
-
-    s = SignImageClass()
-    return s
 
 def train_procedure():
 
@@ -32,12 +26,8 @@ def train_procedure():
     # OSX has no NVIDIA GPU, thus I setup small number of BATCH_SIZE
     #
     
-    BATCH_SIZE = 5
+    BATCH_SIZE = 32
     
-    # data image preparation
-    sign_image = image_data_load()
-    #features_batch,labels_batch = sign_image.batch_train()
-
     x = tf.placeholder(tf.float32, (None, 32, 32, 1))
     y_ = tf.placeholder(tf.int64, [None])
     y_one_hot = tf.one_hot(y_, depth=43, dtype=tf.float32)
@@ -66,18 +56,26 @@ def train_procedure():
         sess.run(init_op)
         saver = tf.train.Saver()
 
-        EPOCH = 64
-        length_train_data = sign_image.train_data_length()
-        length_valid_data = sign_image.valid_data_length()
+        EPOCH = 2
+        #length_train_data = sign_image.train_data_length()
+        #length_valid_data = sign_image.valid_data_length()
+
+        tfRecordCls_train = tfRecordHandlerClass()
+        tfRecordCls_valid = tfRecordHandlerClass()
+
 
         for it in range(EPOCH):
 
             #print("EPOCH", it)
             # data shuffle
-            sign_image.shuffle_train()
-            for offset in range(0,length_train_data,BATCH_SIZE):
-                features_batch,labels_batch = sign_image.batch_train(offset,batch_size=BATCH_SIZE)
+            for offset in range(0,1000):
+                
 
+
+
+    # get images labels from tf records
+    images, labels = tfRecordCls.read_and_decode(filename_queue)
+                
                 feeds = {x:features_batch, y_:labels_batch}
                 train_op.run(feed_dict=feeds)
                 #summary_str = sess.run(merged_summary_op, feed_dict=feeds)

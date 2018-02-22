@@ -4,12 +4,16 @@ import pickle
 import cv2
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from sklearn.preprocessing import OneHotEncoder
 import tensorflow as tf
 from PIL import Image
 from skimage.transform import rescale, resize, rotate
 from skimage.color import gray2rgb, rgb2gray
+
+from tfRecordHandlerClass import tfRecordHandlerClass
 
 def dataload():
     training_file = "train.p"
@@ -65,14 +69,16 @@ class SignImageClass():
     def __init__(self):
 
         signdata = SignData()
-        X_train,self.y_train = signdata.getTrainFeatures()
-        X_test,self.y_test = signdata.getTestFeatures()
-        X_valid,self.y_valid = signdata.getValidFeatures()
+        self.X_train,self.y_train = signdata.getTrainFeatures()
+        self.X_test,self.y_test = signdata.getTestFeatures()
+        self.X_valid,self.y_valid = signdata.getValidFeatures()
 
-        self.X_prep_train = self.preprocessImages(X_train)
-        self.X_prep_test = self.preprocessImages(X_test)
-        self.X_prep_valid = self.preprocessImages(X_valid)
 
+    def imagePreprocess(self):
+
+        self.X_prep_train = self.preprocessImages(self.X_train)
+        self.X_prep_test = self.preprocessImages(self.X_test)
+        self.X_prep_valid = self.preprocessImages(self.X_valid)
 
     def train_data_length(self):
         return self.X_prep_train.shape[0]
@@ -84,7 +90,7 @@ class SignImageClass():
         return self.X_prep_valid.shape[0]
 
     def getValidPreprocess(self):
-        return self.X_prep_valid,y_valid
+        return self.X_prep_valid,self.y_valid
 
     def label_one_hot(self):
 
@@ -119,6 +125,26 @@ class SignImageClass():
         return features_batch,labels_batch
 
     def getGrayScale(self,img):
+
+        # About YCrCb
+        # The YCrCb color space is derived from the RGB color space and has the following three compoenents.
+
+        # Y – Luminance or Luma component obtained from RGB after gamma correction.
+        # Cr = R – Y ( how far is the red component from Luma ).
+        # Cb = B – Y ( how far is the blue component from Luma ).
+
+        # This color space has the following properties.
+
+        # Separates the luminance and chrominance components into different channels.
+        # Mostly used in compression ( of Cr and Cb components ) for TV Transmission.
+        # Device dependent.
+
+        # Observations
+
+        # Similar observations as LAB can be made for Intensity and color components with regard to Illumination changes.
+        # Perceptual difference between Red and Orange is less even in the outdoor image as compared to LAB.
+        # White has undergone change in all 3 components.
+
         YCrCb = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
         return np.resize(YCrCb[:,:,0], (32,32,1))
 
@@ -152,46 +178,26 @@ class SignImageClass():
         return X_norm
 
 
+    def convert_to_full_records_prep(self):
+
+        tf_filenames = ["signtraffic_train.tfrecords", "signtraffic_test.tfrecords", "signtraffic_valid.tfrecords"]
+        image_list = [self.X_prep_train, self.X_prep_test, self.X_prep_valid]
+        label_list = [self.y_train, self.y_test, self.y_valid]
+
+        tfRecordCls = tfRecordHandlerClass()
+        for idx, (images, labels) in enumerate(zip(image_list, label_list)):
+
+            tfRecordCls.convert_to_records( images, labels, tf_filenames[idx] )
+
+    def convert_to_full_records(self):
+
+        tf_filenames = ["signtraffic_train.tfrecords", "signtraffic_test.tfrecords", "signtraffic_valid.tfrecords"]
+        image_list = [self.X_train, self.X_test, self.X_valid]
+        label_list = [self.y_train, self.y_test, self.y_valid]
+
+        tfRecordCls = tfRecordHandlerClass()
+        for idx, (images, labels) in enumerate(zip(image_list, label_list)):
+
+            tfRecordCls.convert_to_records( images, labels, tf_filenames[idx] )
 
 
-
-
-
-
-
-
-
-    def convert_to_records(self,IMAGE_SIZE=128):
-
-        filename = self.tfrecFilename
-
-        print("writing tfrecords....",filename)
-        writer = tf.python_io.TFRecordWriter(filename)
-
-        imagelistDicts = self.argCls.readImageList()
-
-        for idx, (k,v) in enumerate( imagelistDicts.items() ):
-            img = Image.open(k)
-            #img = img.resize( (IMAGE_SIZE,IMAGE_SIZE) )
-            img_np = np.array(img, dtype=np.float32)
-
-            rows,cols,depth = img_np.shape
-
-            image_raw = img_np.tostring()
-            if idx % 500 == 0 and idx > 0:
-                print("%d records processed .." % idx)
-                print(rows,cols,depth)
-                #print(image_raw)
-
-            example = tf.train.Example(features=tf.train.Features(feature={
-                'height': _int64_feature(rows),
-                'width': _int64_feature(cols),
-                'depth': _int64_feature(depth),
-                'label': _int64_feature(int( v )),
-                'image_raw': _bytes_feature(image_raw)}))
-
-            writer.write(example.SerializeToString())
-
-        writer.close()
-        print("writing done....")
-        print("%d records written on tfrecords .." % idx )
