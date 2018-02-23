@@ -1,6 +1,7 @@
 import pickle
 
 import cv2
+import os
 import numpy as np
 import pandas as pd
 
@@ -13,25 +14,53 @@ from skimage.color import gray2rgb, rgb2gray
 #from lenet import LeNet
 from lenet2 import LeNet
 from trafficSignData import SignImageClass
+from ImageProcess import ImageProces
+
+def loadlabelnamelist():
+
+    signnames = "signnames.csv"
+    df_signname = pd.read_csv(signnames)
+
+    signname_dict = {}
+    for k,v in zip(df_signname["ClassId"].values,df_signname["SignName"].values):
+        signname_dict[k] = v
+
+    return signname_dict
 
 def loadDownloadImage():
 
-    downloadDir = "./DownloadSign"
+    imageProcCls = ImageProces()
+    download_images = {}
+
+    downloadDir = "./DownloadsSign"
     files = os.listdir(downloadDir)
     for name in files:
-        image = cv2.imread(name)
+        filename = name.split(".")
+        if filename[-1] != "jpg" and filename[-1] != "png":
+            continue
+        print(name)
+        image = cv2.imread( os.path.join(downloadDir,name) )
         image = cv2.resize(image,(32,32))
+        
         image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)    
+        image = imageProcCls.getGrayScale(image) / 255.
 
+        download_images[filename[0]] = image
+
+    return download_images 
 
 def runtestData():
     # Create some variables.
+
+    download_images = loadDownloadImage()
+    signname_dict = loadlabelnamelist()
 
     x = tf.placeholder(tf.float32, (None, 32, 32, 1))
     y_ = tf.placeholder(tf.int64, [None])
     y_one_hot = tf.one_hot(y_, depth=43, dtype=tf.float32)
 
     logits = LeNet(x,43)
+    prob_img = tf.nn.softmax(logits)
     sign_image = SignImageClass()
 
     with tf.variable_scope("cost") as scope:
@@ -79,7 +108,27 @@ def runtestData():
             saver = tf.train.Saver()
             saver.restore(sess, last_model) # restore load model
 
+            #
+            # testing just 1 image 
+            #
+            
+            acc = []
+            for fname, img in sorted(download_images.items(), key=lambda x:x[0]):
 
+                original_idx = int( fname.split("_")[-1] )
+                img = img.reshape( (1,)+img.shape )
+                probs_ = sess.run(prob_img, feed_dict = {x:img})
+                #print(probs_)
+                argidx = np.argmax(probs_)
+
+                if argidx == original_idx:
+                    acc.append(1)
+                else:
+                    acc.append(0)
+
+                print(argidx, fname, signname_dict[argidx])
+
+            print("model accuracy : %.4f " % np.mean( acc )  )
 
 
         else: # if any tensor model is not found...
@@ -91,6 +140,7 @@ def runtestData():
 
 def main():
 
+    #loadDownloadImage()
     runtestData()
 
 if __name__ == "__main__":

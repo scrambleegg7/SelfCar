@@ -24,6 +24,7 @@ def traing_testing():
 
     imgProcCls = ImageProces()
     sign_image = SignImageClass()
+    sign_image.imagePreprocessNormalize()
 
     BATCH_SIZE = 64
 
@@ -42,14 +43,16 @@ def traing_testing():
         cost = tf.reduce_mean(softmax)
 
     with tf.variable_scope("train") as scope:
-
+        global_step = tf.Variable(0, name='global_step',trainable=False)
         #train_op = tf.train.AdamOptimizer(1e-4).minimize(cost)
         optimizer = tf.train.AdamOptimizer(learning_rate = 0.001)
-        train_op = optimizer.minimize( cost )
+        train_op = optimizer.minimize( cost , global_step=global_step )
 
     with tf.variable_scope("acc") as scope:
         correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(y_one_hot, 1))
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+    print("Start Valuation of Augmentation Image train data ....")
 
     init = tf.global_variables_initializer()
     init2 = tf.local_variables_initializer()
@@ -58,39 +61,48 @@ def traing_testing():
 
         saver = tf.train.Saver()
 
-        EPOCH = 2
+        EPOCH = 32
         length_train_data = sign_image.train_aug_data_length()
         length_valid_data = sign_image.valid_data_length()
 
         for it in range(EPOCH):
 
             #print("EPOCH", it)
-            # data shuffle
+            
+            #
+            # Augmentation image data shuffling 
+            #
+
             sign_image.shuffle_train_aug()
+
+
             for offset in range(0,length_train_data,BATCH_SIZE):
                 features_batch,labels_batch = sign_image.batch_train_aug(offset,batch_size=BATCH_SIZE)
 
-                features_batch = list( map( lambda im : imgProcCls.getGrayScale(im)  , features_batch[:] ) )
-                features_batch = np.array(features_batch) / 255.
+                #features_batch = list( map( lambda im : imgProcCls.getGrayScale(im)  , features_batch[:] ) )
+                #features_batch = np.array(features_batch) / 255.
 
                 feeds = {x:features_batch, y_:labels_batch}
                 train_op.run(feed_dict=feeds)
+
+            g_step=tf.train.global_step(sess, global_step)
+            #print('global_step: %s' % g_step)
 
 
             total_acc = []
             for offset in range(0,length_valid_data,BATCH_SIZE):
                 features_batch,labels_batch = sign_image.batch_valid(offset,batch_size=BATCH_SIZE)
 
-                features_batch = list( map( lambda im : imgProcCls.getGrayScale(im)  , features_batch[:] ) )
-                features_batch = np.array(features_batch) / 255.
+                #features_batch = list( map( lambda im : imgProcCls.getGrayScale(im)  , features_batch[:] ) )
+                #features_batch = np.array(features_batch) / 255.
 
                 feeds = {x:features_batch, y_:labels_batch}
                 acc_, cost_ = sess.run([accuracy,cost],feed_dict=feeds)
                 total_acc.append( acc_ * BATCH_SIZE )
             accuracy_ = np.sum( total_acc ) / np.float(length_valid_data)
-            print("EPOCH:%d total accuracy : %.4f" % (it, accuracy_) )
+            print("EPOCH:%d validation - total accuracy : %.4f" % (it, accuracy_) )
 
-        save_path = saver.save(sess,"./lenet_model/lenet2_aug.ckpt", global_step=it)
+        save_path = saver.save(sess,"./lenet_aug_model/lenet2_aug.ckpt", global_step=g_step)
         print("-" * 30 )
         print("-- Model saved in file: ", save_path )
 

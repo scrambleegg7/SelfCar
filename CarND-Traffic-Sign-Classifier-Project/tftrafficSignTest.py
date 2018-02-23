@@ -14,6 +14,7 @@ from skimage.color import gray2rgb, rgb2gray
 from lenet2 import LeNet
 from trafficSignData import SignImageClass
 
+
 def runtestData():
     # Create some variables.
 
@@ -23,6 +24,7 @@ def runtestData():
 
     logits = LeNet(x,43)
     sign_image = SignImageClass()
+    sign_image.imagePreprocessNormalize()
 
     with tf.variable_scope("cost") as scope:
         #cost = tf.reduce_sum(tf.pow(pred_y - y_, 2))/(2*n_samples)
@@ -55,11 +57,10 @@ def runtestData():
 
         #EPOCH = 64
         BATCH_SIZE = 64
-        length_train_data = sign_image.train_data_length()
         length_valid_data = sign_image.valid_data_length()
         length_test_data = sign_image.test_data_length()
 
-        ckpt = tf.train.get_checkpoint_state('./lenet_model/')
+        ckpt = tf.train.get_checkpoint_state('./lenet_aug_model/')
         if ckpt: # if any model existed
             last_model = ckpt.model_checkpoint_path # path for last model checkpoints
             print("-" * 30)
@@ -75,6 +76,8 @@ def runtestData():
             total_cost = []
             for offset in range(0,length_valid_data,BATCH_SIZE):
                 features_batch,labels_batch = sign_image.batch_valid(offset,batch_size=BATCH_SIZE)
+
+
                 feeds = {x:features_batch, y_:labels_batch}
                 acc_, cost_ = sess.run([accuracy,cost],feed_dict=feeds)
                 total_acc.append( acc_ * BATCH_SIZE )
@@ -90,6 +93,7 @@ def runtestData():
             total_cost = []
             for offset in range(0,length_test_data,BATCH_SIZE):
                 features_batch,labels_batch = sign_image.batch_test(offset,batch_size=BATCH_SIZE)
+
                 feeds = {x:features_batch, y_:labels_batch}
                 acc_, cost_ = sess.run([accuracy,cost],feed_dict=feeds)
                 total_acc.append( acc_ * BATCH_SIZE )

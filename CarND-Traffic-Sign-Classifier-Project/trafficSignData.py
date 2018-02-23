@@ -84,11 +84,13 @@ class SignImageClass():
         self.X_valid,self.y_valid = signdata.getValidFeatures()
         self.X_train_aug,self.y_train_aug = signdata.getTrainAugmentsFeatures()
 
-    def imagePreprocess(self):
+    def imagePreprocessNormalize(self):
 
-        self.X_prep_train = self.preprocessImages(self.X_train)
-        self.X_prep_test = self.preprocessImages(self.X_test)
-        self.X_prep_valid = self.preprocessImages(self.X_valid)
+        print("<SignImageClass> Image Preprocess...")
+        print("     train test valid ...")
+        self.X_train = self.preprocessImages(self.X_train)
+        self.X_test = self.preprocessImages(self.X_test)
+        self.X_valid = self.preprocessImages(self.X_valid)
 
     def train_aug_data_length(self):
         return self.X_train_aug.shape[0]
@@ -184,17 +186,11 @@ class SignImageClass():
         return gray
 
     def preprocessImages(self,images):
-        ret_array = []
+        
+        gray_images = list(  map(lambda im:self.getGrayScale( im ) , images[:]   )     )
+        gray_images = np.array(gray_images) / 255.0 
 
-
-
-        for img in images:
-            g_img = self.getGrayScale(img)
-            g_img = (g_img / 255).astype(np.float32)
-            ret_array.append( g_img )
-
-
-        return np.array(ret_array)
+        return gray_images
 
     def preprocess_image(self,X):
 
