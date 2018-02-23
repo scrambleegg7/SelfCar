@@ -1,2 +1,2 @@
-model_checkpoint_path: "lenet2.ckpt-63"
-all_model_checkpoint_paths: "lenet2.ckpt-63"
+model_checkpoint_path: "lenet2_aug.ckpt-1"
+all_model_checkpoint_paths: "lenet2_aug.ckpt-1"

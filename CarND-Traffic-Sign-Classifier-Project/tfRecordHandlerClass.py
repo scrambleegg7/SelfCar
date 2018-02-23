@@ -35,7 +35,7 @@ class tfRecordHandlerClass(object):
         #
         # Ensure that the random shuffling has good mixing properties.
         #
-        min_fraction_of_examples_in_queue = 0.4
+        min_fraction_of_examples_in_queue = 0.99
         min_queue_examples_ = int(NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN *
                             min_fraction_of_examples_in_queue)
         
@@ -65,18 +65,29 @@ class tfRecordHandlerClass(object):
         # tf pack is discontinued function ....
         # rename to stack
         imshape = tf.stack( [ height, width, depth] )
-        image = tf.decode_raw(features['image_raw'], tf.int32)  # tf int32 --> accept decimal
+        image = tf.decode_raw(features['image_raw'], tf.uint8)  # tf int32 --> accept decimal
 
         IMAGE_SIZE = 32
-        image = tf.reshape(image, [IMAGE_SIZE, IMAGE_SIZE, 1])
-        image.set_shape([IMAGE_SIZE, IMAGE_SIZE, 1])
-        image = tf.cast(image, tf.float32)
+        DIMENTION = 3
+        image = tf.reshape(image, [IMAGE_SIZE, IMAGE_SIZE, 3])
+        #image = tf.reshape(image, imshape)
         
+        #
+        # if original tfRecords stored with uint8 (0-255), below 2 lines are not necessay 
+        # otherwise, image is wrongly dislayed.
+        #
+        #image.set_shape([IMAGE_SIZE, IMAGE_SIZE, 3])
+        #image = tf.cast(image, tf.float32)
+        #image = image / 255. - 0.5
+        #
+
         # Convert label from a scalar uint8 tensor to an int32 scalar.
         label = tf.cast(features['label'], tf.int32)
         
         images, labels = tf.train.shuffle_batch(
             [image, label],
+            allow_smaller_final_batch=True,
+            num_threads=4,
             batch_size = BATCH_SIZE,
             min_after_dequeue = min_queue_examples_,
             capacity = capacity_)
@@ -113,8 +124,7 @@ class tfRecordHandlerClass(object):
                 'width': _int64_feature(cols),
                 'depth': _int64_feature(depth),
                 'label': _int64_feature(int( label )),
-                'image_raw': _floats_feature( images.ravel() )
-                #'image_raw': _bytes_feature(image_raw)
+                'image_raw': _bytes_feature(image_raw) 
                 }
                 )
                 )
@@ -123,4 +133,4 @@ class tfRecordHandlerClass(object):
 
         writer.close()
         print("writing done....")
-        print("%d records written on tfrecords .." % idx )
+        print("%d records written on tfrecords .." % (idx+1) )

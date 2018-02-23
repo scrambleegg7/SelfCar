@@ -17,6 +17,7 @@ from tfRecordHandlerClass import tfRecordHandlerClass
 
 def dataload():
     training_file = "train.p"
+    train_aug_file = "train_aug.p"
     validation_file="valid.p"
     testing_file = "test.p"
 
@@ -26,8 +27,10 @@ def dataload():
         valid = pickle.load(f)
     with open(testing_file, mode='rb') as f:
         test = pickle.load(f)
+    with open(train_aug_file, mode='rb') as f:
+        train_aug = pickle.load(f)
 
-    return train,valid,test
+    return train,valid,test,train_aug
 
 def features_label(in_data):
 
@@ -42,12 +45,19 @@ def features_label(in_data):
 class SignData(object):
 
     def __init__(self):
-        self.train, self.valid, self.test = dataload()
+
+        self.train, self.valid, self.test, self.train_aug = dataload()
 
     def getTrainFeatures(self):
         print("loading train data....")
         X, y = features_label(self.train)
         return X,y
+
+    def getTrainAugmentsFeatures(self):
+        print("loading train augmentation data....")
+        X, y = features_label(self.train_aug)
+        return X,y
+
 
     def getTestFeatures(self):
         print("loading test data....")
@@ -72,7 +82,7 @@ class SignImageClass():
         self.X_train,self.y_train = signdata.getTrainFeatures()
         self.X_test,self.y_test = signdata.getTestFeatures()
         self.X_valid,self.y_valid = signdata.getValidFeatures()
-
+        self.X_train_aug,self.y_train_aug = signdata.getTrainAugmentsFeatures()
 
     def imagePreprocess(self):
 
@@ -80,21 +90,32 @@ class SignImageClass():
         self.X_prep_test = self.preprocessImages(self.X_test)
         self.X_prep_valid = self.preprocessImages(self.X_valid)
 
+    def train_aug_data_length(self):
+        return self.X_train_aug.shape[0]
+
+
     def train_data_length(self):
-        return self.X_prep_train.shape[0]
+        return self.X_train.shape[0]
 
     def test_data_length(self):
-        return self.X_prep_test.shape[0]
+        return self.X_test.shape[0]
 
     def valid_data_length(self):
-        return self.X_prep_valid.shape[0]
+        return self.X_valid.shape[0]
 
     def getValidPreprocess(self):
-        return self.X_prep_valid,self.y_valid
+        return self.X_valid,self.y_valid
 
     def label_one_hot(self):
 
         pass
+
+    def shuffle_train_aug(self):
+
+        num_images = self.X_train_aug.shape[0]
+        r = np.random.permutation(num_images)
+        self.X_train_aug = self.X_train_aug[r]
+        self.y_train_aug = self.y_train_aug[r]
 
     def shuffle_train(self):
 
@@ -103,23 +124,30 @@ class SignImageClass():
         self.X_prep_train = self.X_prep_train[r]
         self.y_train = self.y_train[r]
 
+    def batch_train_aug(self,offset=0,batch_size=64):
+
+        features_batch = self.X_train_aug[offset:offset+batch_size]
+        labels_batch = self.y_train_aug[offset:offset+batch_size]
+
+        return features_batch,labels_batch
+
     def batch_train(self,offset=0,batch_size=64):
 
-        features_batch = self.X_prep_train[offset:offset+batch_size]
+        features_batch = self.X_train[offset:offset+batch_size]
         labels_batch = self.y_train[offset:offset+batch_size]
 
         return features_batch,labels_batch
 
     def batch_valid(self,offset=0,batch_size=64):
 
-        features_batch = self.X_prep_valid[offset:offset+batch_size]
+        features_batch = self.X_valid[offset:offset+batch_size]
         labels_batch = self.y_valid[offset:offset+batch_size]
 
         return features_batch,labels_batch
 
     def batch_test(self,offset=0,batch_size=64):
 
-        features_batch = self.X_prep_test[offset:offset+batch_size]
+        features_batch = self.X_test[offset:offset+batch_size]
         labels_batch = self.y_test[offset:offset+batch_size]
 
         return features_batch,labels_batch
@@ -157,6 +185,9 @@ class SignImageClass():
 
     def preprocessImages(self,images):
         ret_array = []
+
+
+
         for img in images:
             g_img = self.getGrayScale(img)
             g_img = (g_img / 255).astype(np.float32)
@@ -191,7 +222,7 @@ class SignImageClass():
 
     def convert_to_full_records(self):
 
-        tf_filenames = ["signtraffic_train.tfrecords", "signtraffic_test.tfrecords", "signtraffic_valid.tfrecords"]
+        tf_filenames = ["trafficSign_train.tfRecords", "trafficSign_test.tfrecords", "trafficSign_valid.tfrecords"]
         image_list = [self.X_train, self.X_test, self.X_valid]
         label_list = [self.y_train, self.y_test, self.y_valid]
 

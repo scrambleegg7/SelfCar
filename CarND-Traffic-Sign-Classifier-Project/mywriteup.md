@@ -79,23 +79,26 @@ Secondly, I have generated histogram against train, test, validation data set ho
 ### Design and Test a Model Architecture
 
 #### 1. GrayScale Preprocess
-First of all, I have converted all colored images to gray scale using cv2 YCrBr method. The reason why I have choosed gray scape as first step is that I need to get rid out of any unnecessary colored cordination data and shrink dimention to 1, moreover to strength siginificant features of each image.
+First of all, I have converted all colored images to gray scale using cv2 YCrBr method. The reason why I have choosed gray scape as first step is that I need to get rid out of any unnecessary colored cordination data and shrink dimention to 1, moreover to strength siginificant features of each images.
 
 The below images are my random sample gray images.
 
 ![alt text][image2]
 
-then I have applied the scaling to normalize the data image 
+then I have applied the image scaling to normalize data set image, which aredivid with float number 255 (float number is necessary to get float result after deviding.). In some normalization cases, -0.5 is deducted after image is devided with 255., but I have used [0-1] normalization as standard image process. 
+Also, these teqchnique, Gray Scale and Normalization process is conducted in tensorflow batch process after reading main augmented raw data.
 
-I decided to generate additional data because ... 
 
-To add more data to the the data set, I used the following techniques because ... 
+#### 2. Data Augmentation Preprocess
 
-Here is an example of an original image and an augmented image:
+Generally, data has to have good diversity as the object of interest needs to be present in varying sizes, lighting conditions and poses if desiring that our network generalizes well during training and testing phase. To overcome this problem of limited quantity and limited diversity of data for aquiring best performance of data training and testing, I have used data augmentation technique, where I modified 
+
+#### 3. Increased Data size to fullfill imbalanced data size over traffic sign label.
+As shown in the previous section, traffice sign data has strong data bias which means there are bunch of significant speed limit sign boards other than small data set of road construction sign. If we proceed to train twisted data volume per each label, then classifier will be out of right descision to determine undermined class label image, but also, return high volumed class label for unidentified images.
+The below is result graph after balancing data.
+
 
 ![alt text][image3]
-
-The difference between the original data set and the augmented data set is the following ... 
 
 
 #### 2. Describe what your final model architecture looks like including model type, layers, layer sizes, connectivity, etc.) Consider including a diagram and/or table describing the final model.
@@ -104,7 +107,7 @@ My final model consisted of the following layers:
 
 | Layer         		|     Description	        					| 
 |:---------------------:|:---------------------------------------------:| 
-| Input         		| 32x32x3 RGB image   							| 
+| Input         		| 32x32x1 single image   							| 
 | Convolution 3x3     	| 1x1 stride, same padding, outputs 32x32x64 	|
 | RELU					|												|
 | Max pooling	      	| 2x2 stride,  outputs 16x16x64 				|
@@ -116,15 +119,19 @@ My final model consisted of the following layers:
  
 
 
-#### 3. Describe how you trained your model. The discussion can include the type of optimizer, the batch size, number of epochs and any hyperparameters such as learning rate.
+#### 3. Hyper Parameters on Tensorflow training.
 
-To train the model, I used an ....
+To train the model, I used following hyper parameters:;
+
+EPOCHS:64
+learning_rate : 0.001
+
 
 #### 4. Describe the approach taken for finding a solution and getting the validation set accuracy to be at least 0.93. Include in the discussion the results on the training, validation and test sets and where in the code these were calculated. Your approach may have been an iterative process, in which case, outline the steps you took to get to the final solution and why you chose those steps. Perhaps your solution involved an already well known implementation or architecture. In this case, discuss why you think the architecture is suitable for the current problem.
 
 My final model results were:
-* training set accuracy of ?
-* validation set accuracy of ? 
+* training set accuracy of 
+* validation set accuracy of 0.96 
 * test set accuracy of ?
 
 If an iterative approach was chosen:
