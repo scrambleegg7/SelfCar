@@ -34,6 +34,8 @@ I have each goals as following.
 [signboard]:./signboard_img/label0-7.jpeg "label0-7 signboard"
 [augmentation]:./plotimage/augmentation.jpeg "augmentation"
 [gray_scale]:./plotimage/gray_scale.jpeg "gray_scale"
+[balanced_label]:./plotimage/balanced_label.png "balanced_label"
+
 
 [image1]: ./examples/visualization.jpg "Visualization"
 [image2]: ./examples/grayscale.jpg "Grayscaling"
@@ -73,8 +75,11 @@ First of all, traffic signboard data set is:
 
 Secondly, I have generated histogram against train, test, validation data set how label-id are distributed over those 3 types of signboard images. Looking at histgraph carefully, some of label id like SpeedLimit signboard has shown strong biases, which means having much volume of data than any other label id like trun left or turn right etc. Here is my visualiztion of the data set exploralization.   
 
+__Training Data__
 ![alt text][trainhist]
+__Test Data__
 ![alt text][testhist]
+__Validation Data__
 ![alt text][validhist]
 
 The below is a part of raw traffic sign images.
@@ -89,24 +94,27 @@ First of all, I have converted all colored images to gray scale using cv2 YCrBr 
 The below images are my random sample gray images.
 
 
-__About YCrCb__
-The YCrCb color space is derived from the RGB color space and has the following three compoenents.
-
-Y – Luminance or Luma component obtained from RGB after gamma correction.
-Cr = R – Y ( how far is the red component from Luma ).
-Cb = B – Y ( how far is the blue component from Luma ).
-
-This color space has the following properties.
-
-Separates the luminance and chrominance components into different channels.
-Mostly used in compression ( of Cr and Cb components ) for TV Transmission.
-Device dependent.
-
-Observations
-
-Similar observations as LAB can be made for Intensity and color components with regard to Illumination changes.
+##### __*About YCrCb*__ #####
+>**Brief Note**
+>The YCrCb color space is derived from the RGB color space and has the ?
+>There are following three compoenents.
+> 
+>Y – Luminance or Luma component obtained from RGB after gamma correction.
+>Cr = R – Y ( how far is the red component from Luma ).
+>Cb = B – Y ( how far is the blue component from Luma ).
+>
+>This color space has the following properties.
+>
+>Separates the luminance and chrominance components into different channels.
+>Mostly used in compression ( of Cr and Cb components ) for TV Transmission.
+>Device dependent.
+>
+> **Observations**
+>
+>Similar observations can be made for Intensity and color components with regard to Illumination changes.
 Perceptual difference between Red and Orange is less even in the outdoor image as compared to LAB.
 White has undergone change in all 3 components.
+
 
 ![alt text][gray_scale]
 
@@ -155,35 +163,62 @@ As shown in the previous section, traffice sign data has strong data bias which 
 
 The below is result graph after I have adjusted balancing data.
 
+![alt text][balanced_label]
+
+#### Desgined Model & Hyper Parameters, Adjustment 
+
+I have tested 3 different model types to tain TrafficSign (Augmentation Image)
 
 
-
-#### 2. Describe what your final model architecture looks like including model type, layers, layer sizes, connectivity, etc.) Consider including a diagram and/or table describing the final model.
-
-My final model consisted of the following layers:
+#### 1.0 Standard LeNet Model 
 
 | Layer         		|     Description	        	| 
 |:---------------------:|:---------------------------------------------:| 
-| Input         		| 32x32x1 single image   		| 
-| Convolution 3x3     	| 1x1 stride, same padding, outputs 32x32x64 	|
-| RELU					|				|
-| Max pooling	      	| 2x2 stride,  outputs 16x16x64 	|
-| Convolution 3x3	    | etc.      		|
-| Fully connected		| etc.        			|
-| Softmax				| softmax with cross entropy        				|
-|						|				|
-| logits					| BATCH_SIZE x 43 (= number of classes |
- 
+| ***Input***          | 32x32x1 single image    		| 
+| ***Convolution 1*** filter 5 x 5    | 1x1 stride, valid padding, outputs: 28x28x6  	|
+| ReLu		|   ReLu(***Convolution1***)       			|
+| ***Max pooling 1***	      	| 2x2 stride,  outputs 14x14x6 	|
+| Input for Convolution2         | 14x14x6  (fromm MaxPooling1)   		| 
+| ***Convolution2*** filer 5 x 5 |  1x1 stride, valid padding, outputs: 10x10x16     		|
+| ReLu		|   ReLue(***Convolution2***)       			|
+| ***Max pooling 2***	      	| 2x2 stride,  outputs 5x5x16 	|
+| ***Flatten***		| Input 5x5x16 output 400        |
+| ***Fully Connected (fc1)***  | Input 400 Output 120  | 
+| ReLu		|   ReLue(***fc1***)       		| 
+| ***Fully Connected (fc2)***  | Input 120 Output 84  | 
+| ReLu		|   ReLue(***fc2***)       		| 
+| ***Fully Connected (fc3)***  | Input 84 Output 43  | 
+| logits		|   (***fc2***)       		| 
+
+#### 1.1 Standard LeNet Model 
+
+| Layer         		|     Description	        	| 
+|:---------------------:|:---------------------------------------------:| 
+| ***Input***          | 32x32x1 single image    		| 
+| ***Convolution 1*** filter 5 x 5    | 1x1 stride, valid padding, outputs: 28x28x6  	|
+| ReLu		|   ReLu(***Convolution1***)       			|
+| ***Max pooling 1***	      	| 2x2 stride,  outputs 14x14x6 	|
+| Input for Convolution2         | 14x14x6  (fromm MaxPooling1)   		| 
+| ***Convolution2*** filer 5 x 5 |  1x1 stride, valid padding, outputs: 10x10x16     		|
+| ReLu		|   ReLue(***Convolution2***)       			|
+| ***Max pooling 2***	      	| 2x2 stride,  outputs 5x5x16 	|
+| ***Flatten***		| Input 5x5x16 output 400        |
+| ***Fully Connected (fc1)***  | Input 400 Output 120  | 
+| ReLu		|   ReLue(***fc1***)       		| 
+| ***Fully Connected (fc2)***  | Input 120 Output 84  | 
+| ReLu		|   ReLue(***fc2***)       		| 
+| ***Fully Connected (fc3)***  | Input 84 Output 43  | 
+| logits		|   (***fc2***)       		| 
 
 
-#### 3. Hyper Parameters on Tensorflow training.
+#### 2. Hyper Parameters on Tensorflow training.
 
 To train the model, I used following hyper parameters:;
 
-EPOCHS:64
-learning_rate : 0.001
-Optimizer : AdmOptimizer
-correctness : softmax with cross entropy (tensorflow) 
+EPOCHS:__32__
+learning_rate : __0.001__
+Optimizer : __AdmOptimizer__
+loss function : __tf.nn.softmax_cross_entropy_with_logits__ 
 
 
 
@@ -195,10 +230,8 @@ My final model results were:
 * test set accuracy of .95
 
 If an iterative approach was chosen:
-* First of all, I have applied general LeNet model architecture provided in UdaCity Course. So far so good, but accuracy is not 
-* What were some problems with the initial architecture?
-* 
-* Which parameters were tuned? How were they adjusted and why?
+* First of all, I have applied standard LeNet model architecture which accuracy score begins with 83%. With initial learning rate 0.001, accuracy score was gradually being improved upto 94% at final step of EPOCH. This is 1% score improvment than benchmark score, but it is not good enough to judge best performance model. Though it is not big issue of building best scoring model, I think there might have any possibilities to enhance training model to preciously fit data set of aumentation images   
+* Thus, I have modified 
 * What are some of the important design choices and why were they chosen? For example, why might a convolution layer work well with this problem? How might a dropout layer help with creating a successful model?
 
  
