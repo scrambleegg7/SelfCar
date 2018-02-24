@@ -31,6 +31,9 @@ I have each goals as following.
 [trainhist]:./plotimage/train_label.png "train histogram"
 [testhist]:./plotimage/test_label.png "test histogram"
 [validhist]:./plotimage/valid_label.png "valid histogram"
+[signboard]:./signboard_img/label0-7.jpeg "label0-7 signboard"
+[augmentation]:./plotimage/augmentation.jpeg "augmentation"
+[gray_scale]:./plotimage/gray_scale.jpeg "gray_scale"
 
 [image1]: ./examples/visualization.jpg "Visualization"
 [image2]: ./examples/grayscale.jpg "Grayscaling"
@@ -74,7 +77,9 @@ Secondly, I have generated histogram against train, test, validation data set ho
 ![alt text][testhist]
 ![alt text][validhist]
 
+The below is a part of raw traffic sign images.
 
+![alt text][signboard]
 
 ### Design and Test a Model Architecture
 
@@ -83,39 +88,91 @@ First of all, I have converted all colored images to gray scale using cv2 YCrBr 
 
 The below images are my random sample gray images.
 
-![alt text][image2]
 
-then I have applied the image scaling to normalize data set image, which aredivid with float number 255 (float number is necessary to get float result after deviding.). In some normalization cases, -0.5 is deducted after image is devided with 255., but I have used [0-1] normalization as standard image process. 
-Also, these teqchnique, Gray Scale and Normalization process is conducted in tensorflow batch process after reading main augmented raw data.
+__About YCrCb__
+The YCrCb color space is derived from the RGB color space and has the following three compoenents.
+
+Y – Luminance or Luma component obtained from RGB after gamma correction.
+Cr = R – Y ( how far is the red component from Luma ).
+Cb = B – Y ( how far is the blue component from Luma ).
+
+This color space has the following properties.
+
+Separates the luminance and chrominance components into different channels.
+Mostly used in compression ( of Cr and Cb components ) for TV Transmission.
+Device dependent.
+
+Observations
+
+Similar observations as LAB can be made for Intensity and color components with regard to Illumination changes.
+Perceptual difference between Red and Orange is less even in the outdoor image as compared to LAB.
+White has undergone change in all 3 components.
+
+![alt text][gray_scale]
+
+then I have applied the image scaling to normalize data set image, which are divided with float number 255 (float number is necessary to get float result after deviding.). In some normalization cases, -0.5 is deducted after image is devided with 255., but I have used [0-1] normalization as standard image processes. Normalized image data is saved into python class module variables as memory based.
 
 
 #### 2. Data Augmentation Preprocess
 
-Generally, data has to have good diversity as the object of interest needs to be present in varying sizes, lighting conditions and poses if desiring that our network generalizes well during training and testing phase. To overcome this problem of limited quantity and limited diversity of data for aquiring best performance of data training and testing, I have used data augmentation technique, where I modified 
+Generally, data has to have good diversity as the object of interest needs to be present in varying sizes, lighting conditions and poses if desiring that our network generalizes well during training and testing phase. To overcome this problem of limited quantity and limited diversity of data for aquiring best performance of data training and testing, I have used data augmentation technique, which twisted image data using rotation, Shearing, and adjusting brightess. The below indicates a part of my program code.
+
+```
+        ang_rot = np.random.uniform(ang_range)-ang_range/2
+        rows,cols,ch = img.shape
+        Rot_M = cv2.getRotationMatrix2D((cols/2,rows/2),ang_rot,1)
+
+        # Translation
+        tr_x = trans_range*np.random.uniform()-trans_range/2
+        tr_y = trans_range*np.random.uniform()-trans_range/2
+        Trans_M = np.float32([[1,0,tr_x],[0,1,tr_y]])
+
+        # Shear
+        pts1 = np.float32([[5,5],[20,5],[5,20]])
+
+        pt1 = 5+shear_range*np.random.uniform()-shear_range/2
+        pt2 = 20+shear_range*np.random.uniform()-shear_range/2
+
+        # Brightness
+
+        pts2 = np.float32([[pt1,5],[pt2,pt1],[5,pt2]])
+
+        shear_M = cv2.getAffineTransform(pts1,pts2)
+
+        img = cv2.warpAffine(img,Rot_M,(cols,rows))
+        img = cv2.warpAffine(img,Trans_M,(cols,rows))
+        img = cv2.warpAffine(img,shear_M,(cols,rows))
+
+        #if brightness == 1:
+        #  img = augment_brightness_camera_images(img)
+
+```
+
+![alt text][augmentation]
 
 #### 3. Increased Data size to fullfill imbalanced data size over traffic sign label.
-As shown in the previous section, traffice sign data has strong data bias which means there are bunch of significant speed limit sign boards other than small data set of road construction sign. If we proceed to train twisted data volume per each label, then classifier will be out of right descision to determine undermined class label image, but also, return high volumed class label for unidentified images.
-The below is result graph after balancing data.
+As shown in the previous section, traffice sign data has strong data bias which means there are mounts of speed limit sign boards other than small data set of road construction sign. If we proceed to raw train biased data volume per each label, then classifier will be out of right descision to determine undermined class label image, also might return inaccurate class label for unidentified images or tweeked images. 
+
+The below is result graph after I have adjusted balancing data.
 
 
-![alt text][image3]
 
 
 #### 2. Describe what your final model architecture looks like including model type, layers, layer sizes, connectivity, etc.) Consider including a diagram and/or table describing the final model.
 
 My final model consisted of the following layers:
 
-| Layer         		|     Description	        					| 
+| Layer         		|     Description	        	| 
 |:---------------------:|:---------------------------------------------:| 
-| Input         		| 32x32x1 single image   							| 
+| Input         		| 32x32x1 single image   		| 
 | Convolution 3x3     	| 1x1 stride, same padding, outputs 32x32x64 	|
-| RELU					|												|
-| Max pooling	      	| 2x2 stride,  outputs 16x16x64 				|
-| Convolution 3x3	    | etc.      									|
-| Fully connected		| etc.        									|
-| Softmax				| etc.        									|
-|						|												|
-|						|												|
+| RELU					|				|
+| Max pooling	      	| 2x2 stride,  outputs 16x16x64 	|
+| Convolution 3x3	    | etc.      		|
+| Fully connected		| etc.        			|
+| Softmax				| softmax with cross entropy        				|
+|						|				|
+| logits					| BATCH_SIZE x 43 (= number of classes |
  
 
 
@@ -125,38 +182,34 @@ To train the model, I used following hyper parameters:;
 
 EPOCHS:64
 learning_rate : 0.001
-
+Optimizer : AdmOptimizer
+correctness : softmax with cross entropy (tensorflow) 
 
 
 
 #### 4. Describe the approach taken for finding a solution and getting the validation set accuracy to be at least 0.93. Include in the discussion the results on the training, validation and test sets and where in the code these were calculated. Your approach may have been an iterative process, in which case, outline the steps you took to get to the final solution and why you chose those steps. Perhaps your solution involved an already well known implementation or architecture. In this case, discuss why you think the architecture is suitable for the current problem.
 
 My final model results were:
-* training set accuracy of 
+* training set accuracy of 0.99 (best performance)
 * validation set accuracy of 0.96 
-* test set accuracy of ?
+* test set accuracy of .95
 
 If an iterative approach was chosen:
-* What was the first architecture that was tried and why was it chosen?
+* First of all, I have applied general LeNet model architecture provided in UdaCity Course. So far so good, but accuracy is not 
 * What were some problems with the initial architecture?
-* How was the architecture adjusted and why was it adjusted? Typical adjustments could include choosing a different model architecture, adding or taking away layers (pooling, dropout, convolution, etc), using an activation function or changing the activation function. One common justification for adjusting an architecture would be due to overfitting or underfitting. A high accuracy on the training set but low accuracy on the validation set indicates over fitting; a low accuracy on both sets indicates under fitting.
+* 
 * Which parameters were tuned? How were they adjusted and why?
 * What are some of the important design choices and why were they chosen? For example, why might a convolution layer work well with this problem? How might a dropout layer help with creating a successful model?
 
-If a well known architecture was chosen:
-* What architecture was chosen?
-* Why did you believe it would be relevant to the traffic sign application?
-* How does the final model's accuracy on the training, validation and test set provide evidence that the model is working well?
  
 
 ### Test a Model on New Images
 
 #### 1. Choose five German traffic signs found on the web and provide them in the report. For each image, discuss what quality or qualities might be difficult to classify.
 
-Here are five German traffic signs that I found on the web:
+Here are more than five German traffic signs that I downloaded from web server:
 
-![alt text][image4] ![alt text][image5] ![alt text][image6] 
-![alt text][image7] ![alt text][image8]
+
 
 The first image might be difficult to classify because ...
 

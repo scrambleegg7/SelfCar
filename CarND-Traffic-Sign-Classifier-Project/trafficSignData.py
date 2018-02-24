@@ -14,6 +14,7 @@ from skimage.transform import rescale, resize, rotate
 from skimage.color import gray2rgb, rgb2gray
 
 from tfRecordHandlerClass import tfRecordHandlerClass
+from ImageProcess import ImageProces
 
 def dataload():
     training_file = "train.p"
@@ -79,6 +80,8 @@ class SignImageClass():
     def __init__(self):
 
         signdata = SignData()
+        self.imageProcessClass = ImageProces()
+
         self.X_train,self.y_train = signdata.getTrainFeatures()
         self.X_test,self.y_test = signdata.getTestFeatures()
         self.X_valid,self.y_valid = signdata.getValidFeatures()
@@ -86,11 +89,12 @@ class SignImageClass():
 
     def imagePreprocessNormalize(self):
 
-        print("<SignImageClass> Image Preprocess...")
-        print("     train test valid ...")
+        print("<SignImageClass> Image Preprocess...Normalize  ")
+        print("     train test valid and augmentation train ...")
         self.X_train = self.preprocessImages(self.X_train)
         self.X_test = self.preprocessImages(self.X_test)
         self.X_valid = self.preprocessImages(self.X_valid)
+        self.X_train_aug = self.preprocessImages(self.X_train_aug)
 
     def train_aug_data_length(self):
         return self.X_train_aug.shape[0]
@@ -154,40 +158,9 @@ class SignImageClass():
 
         return features_batch,labels_batch
 
-    def getGrayScale(self,img):
-
-        # About YCrCb
-        # The YCrCb color space is derived from the RGB color space and has the following three compoenents.
-
-        # Y – Luminance or Luma component obtained from RGB after gamma correction.
-        # Cr = R – Y ( how far is the red component from Luma ).
-        # Cb = B – Y ( how far is the blue component from Luma ).
-
-        # This color space has the following properties.
-
-        # Separates the luminance and chrominance components into different channels.
-        # Mostly used in compression ( of Cr and Cb components ) for TV Transmission.
-        # Device dependent.
-
-        # Observations
-
-        # Similar observations as LAB can be made for Intensity and color components with regard to Illumination changes.
-        # Perceptual difference between Red and Orange is less even in the outdoor image as compared to LAB.
-        # White has undergone change in all 3 components.
-
-        YCrCb = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
-        return np.resize(YCrCb[:,:,0], (32,32,1))
-
-    def rgb2gray(self,rgb):
-
-        r, g, b = rgb[:, :,:,0], rgb[:, :,:,1], rgb[:,:,:,2]
-        gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
-
-        return gray
-
     def preprocessImages(self,images):
         
-        gray_images = list(  map(lambda im:self.getGrayScale( im ) , images[:]   )     )
+        gray_images = list(  map(lambda im:self.imageProcessClass.getGrayScale( im ) , images[:]   )     )
         gray_images = np.array(gray_images) / 255.0 
 
         return gray_images

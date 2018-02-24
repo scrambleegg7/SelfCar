@@ -175,7 +175,10 @@ class ImageProces(object):
             images_in_this_sign = self.X_train[self.y_train == label_index, ...]
             separated_data.append(images_in_this_sign)
 
-        new_effect_cnt = list( map(lambda x: (3. * (avg_per_sign  / x) ).astype(np.int32)  , (imgs_per_sign)  ) )
+        #
+        # scaler = 3.7 to get even balanced data.
+        #
+        new_effect_cnt = list( map(lambda x: (3.7 * (avg_per_sign  / x) ).astype(np.int32)  , (imgs_per_sign)  ) )
 
         whole_aug_image_dict = {}
         new_y_train = []
