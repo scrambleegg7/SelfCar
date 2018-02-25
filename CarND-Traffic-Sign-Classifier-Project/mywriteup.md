@@ -35,6 +35,8 @@ I have each goals as following.
 [augmentation]:./plotimage/augmentation.jpeg "augmentation"
 [gray_scale]:./plotimage/gray_scale.jpeg "gray_scale"
 [balanced_label]:./plotimage/balanced_label.png "balanced_label"
+[trafficSignMat]:./DownloadsSign/trafficSignMatrix.jpg "DownloadSign"
+
 
 
 [image1]: ./examples/visualization.jpg "Visualization"
@@ -188,27 +190,30 @@ I have tested 3 different model types to tain TrafficSign (Augmentation Image)
 | ***Fully Connected (fc2)***  | Input 120 Output 84  | 
 | ReLu		|   ReLue(***fc2***)       		| 
 | ***Fully Connected (fc3)***  | Input 84 Output 43  | 
-| logits		|   (***fc2***)       		| 
+| logits		|   ***fc3***    		| 
 
-#### 1.1 Standard LeNet Model 
+#### 1.1 Enhanced LeNet Model 
 
 | Layer         		|     Description	        	| 
 |:---------------------:|:---------------------------------------------:| 
 | ***Input***          | 32x32x1 single image    		| 
-| ***Convolution 1*** filter 5 x 5    | 1x1 stride, valid padding, outputs: 28x28x6  	|
+| ***Convolution 1*** filter 5 x 5    | 1x1 stride, valid padding, outputs: 28x28x48	|
 | ReLu		|   ReLu(***Convolution1***)       			|
-| ***Max pooling 1***	      	| 2x2 stride,  outputs 14x14x6 	|
-| Input for Convolution2         | 14x14x6  (fromm MaxPooling1)   		| 
-| ***Convolution2*** filer 5 x 5 |  1x1 stride, valid padding, outputs: 10x10x16     		|
+| ***Max pooling 1***	      	| 2x2 stride,  outputs 14x14x48 	|
+| Input for Convolution2         | 14x14x48  (fromm MaxPooling1)   		| 
+| ***Convolution2*** filer 5 x 5 |  1x1 stride, valid padding, outputs: 10x10x96     		|
 | ReLu		|   ReLue(***Convolution2***)       			|
-| ***Max pooling 2***	      	| 2x2 stride,  outputs 5x5x16 	|
-| ***Flatten***		| Input 5x5x16 output 400        |
-| ***Fully Connected (fc1)***  | Input 400 Output 120  | 
+| ***Max pooling 2***	      	| 2x2 stride,  outputs 5x5x96 	|
+| ***Convolution3*** filer 3 x 3 |  1x1 stride, valid padding, outputs: 3x3x172     		|
+| ReLu		|   ReLue(***Convolution2***)       			|
+| ***Max pooling 2***	      	| 2x2 stride,  outputs 2x2x172 	|
+| ***Flatten***		| Input 2x2x172 output 688        |
+| ***Fully Connected (fc1)***  | Input 688 Output 688  | 
 | ReLu		|   ReLue(***fc1***)       		| 
-| ***Fully Connected (fc2)***  | Input 120 Output 84  | 
+| ***Fully Connected (fc2)***  | Input 688 Output 84  | 
 | ReLu		|   ReLue(***fc2***)       		| 
 | ***Fully Connected (fc3)***  | Input 84 Output 43  | 
-| logits		|   (***fc2***)       		| 
+| logits		|   ***fc3***       		| 
 
 
 #### 2. Hyper Parameters on Tensorflow training.
@@ -225,28 +230,38 @@ loss function : __tf.nn.softmax_cross_entropy_with_logits__
 #### 4. Describe the approach taken for finding a solution and getting the validation set accuracy to be at least 0.93. Include in the discussion the results on the training, validation and test sets and where in the code these were calculated. Your approach may have been an iterative process, in which case, outline the steps you took to get to the final solution and why you chose those steps. Perhaps your solution involved an already well known implementation or architecture. In this case, discuss why you think the architecture is suitable for the current problem.
 
 My final model results were:
-* training set accuracy of 0.99 (best performance)
+* training set accuracy of 0.99 (best performance from LeNet2)
 * validation set accuracy of 0.96 
 * test set accuracy of .95
 
 If an iterative approach was chosen:
-* First of all, I have applied standard LeNet model architecture which accuracy score begins with 83%. With initial learning rate 0.001, accuracy score was gradually being improved upto 94% at final step of EPOCH. This is 1% score improvment than benchmark score, but it is not good enough to judge best performance model. Though it is not big issue of building best scoring model, I think there might have any possibilities to enhance training model to preciously fit data set of aumentation images   
-* Thus, I have modified 
-* What are some of the important design choices and why were they chosen? For example, why might a convolution layer work well with this problem? How might a dropout layer help with creating a successful model?
-
- 
+* First of all, I have applied standard LeNet model architecture which accuracy score begins with 83%. With initial learning rate 0.001, accuracy score was gradually being improved upto 94% at final step of EPOCH. This is 1% score improvment than benchmark score, but it is not good enough to judge best performance model. Though it is not big issue of building best scoring model for Traffic Sign board identifiation, I think there might have any possibilities to enhance training model to preciously fit data set of aumentation images.   
+* What I modified as main points are;
+*** add one additional layer (Convolutional layer 3)
+*** increase filter number to 48 from convolutional layer 1 
+* As a result of above modification on LeNet model, I was able to obtain best score 99% while training and validating data set image.
+* Due to handle tiny image size compared with other sofisticated model (AlexNet etc.) on machine learning competition, I have not touched any other hyper parameters except learning rate.
+* 
 
 ### Test a Model on New Images
 
 #### 1. Choose five German traffic signs found on the web and provide them in the report. For each image, discuss what quality or qualities might be difficult to classify.
 
-Here are more than five German traffic signs that I downloaded from web server:
+I have setup several traffic sign images downloaed broadwidely from web page. 
 
-
+![alt text][trafficSignMat]
 
 The first image might be difficult to classify because ...
 
 #### 2. Discuss the model's predictions on these new traffic signs and compare the results to predicting on the test set. At a minimum, discuss what the predictions were, the accuracy on these new predictions, and compare the accuracy to the accuracy on the test set (OPTIONAL: Discuss the results in more detail as described in the "Stand Out Suggestions" part of the rubric).
+
+I got following prediction result from downloaded images after applying the trained model.
+Overall, I got over 70% accuracy, but this score 
+
+The reason why I see such results is
+* Original Image sizes are not constant, some of larges, other small etc.
+* Image is pictured with any kinds of background like road, building
+* Some Signboard is not pictured in center of image, thus hard to understand where traffic image is seen by machine learning model.
 
 Here are the results of the prediction:
 
@@ -262,6 +277,8 @@ Here are the results of the prediction:
 The model was able to correctly guess 4 of the 5 traffic signs, which gives an accuracy of 80%. This compares favorably to the accuracy on the test set of ...
 
 #### 3. Describe how certain the model is when predicting on each of the five new images by looking at the softmax probabilities for each prediction. Provide the top 5 softmax probabilities for each image along with the sign type of each probability. (OPTIONAL: as described in the "Stand Out Suggestions" part of the rubric, visualizations can also be provided such as bar charts)
+
+
 
 The code for making predictions on my final model is located in the 11th cell of the Ipython notebook.
 
