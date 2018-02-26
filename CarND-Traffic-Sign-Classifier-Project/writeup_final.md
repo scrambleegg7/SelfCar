@@ -249,7 +249,7 @@ If an iterative approach was chosen:
 
 #### 1. Choose five German traffic signs found on the web and provide them in the report. For each image, discuss what quality or qualities might be difficult to classify.
 
-I have setup several traffic sign images downloaed broadwidely from web page. 
+I have setup several traffic sign images downloaed broadwidely from web page. I have picked up 24 different images other than 5 images, since I would check several images having different shape of sign boards, also having many kinds of backgrounds behind the traffic sign.
 
 ![alt text][DLImage]
 
@@ -258,20 +258,20 @@ I have setup several traffic sign images downloaed broadwidely from web page.
 #### 2. Discuss the model's predictions on these new traffic signs and compare the results to predicting on the test set. At a minimum, discuss what the predictions were, the accuracy on these new predictions, and compare the accuracy to the accuracy on the test set (OPTIONAL: Discuss the results in more detail as described in the "Stand Out Suggestions" part of the rubric).
 
 I got following prediction result from downloaded images after applying the trained model.
-Overall, I have successfully taken over 75% accuracy.
+I have successfully taken right 75% accuracy score. But the score is less 20% than test score which I took in training processing. 
 See the below result score for each downloaded images.
 
 ![alt text][DLImagePrediction]
 
 
-The reason why I see such accuracy score is
+The reason why I obtained 75% accuracy score from test images is
 * Original Image sizes are not constant, some of larges, other small etc. 
-* Image is heavily distorted if shrinking big image to default entry image size (32x32). It means to drain some of significant data from original ones.
+* Image is heavily distorted when shrinking big image to default entry image size (32x32). It means to drain some of significant data from original ones.
 * Image is pictured with any kinds of background like road, building
 * Some Signboard is not pictured in center of image, thus hard to understand where traffic image is seen by machine learning model.
 
 
-The model was able to correctly guess 4 of the 5 traffic signs, which gives an accuracy of 80%. This compares favorably to the accuracy on the test set of ...
+...
 
 #### 3. Describe how certain the model is when predicting on each of the five new images by looking at the softmax probabilities for each prediction. Provide the top 5 softmax probabilities for each image along with the sign type of each probability. (OPTIONAL: as described in the "Stand Out Suggestions" part of the rubric, visualizations can also be provided such as bar charts)
 
