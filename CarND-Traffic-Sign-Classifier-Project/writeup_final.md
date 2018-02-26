@@ -6,16 +6,15 @@
 
 **Build a Traffic Sign Recognition Project (UdaCity)**
 
-This is a second project assigned by UdaCity Self Car Driving Nano Degree Course. The main object is to classify the traffic Sign Board with tensorflow. Though the course provides free ticket to access Amazon cloud server (AWS) GPU environments, I will use my personal system environment having solid GPU card.
+This is a second project assigned by UdaCity Self Car Driving Nano Degree Course. The main object is to have training data set of the traffic Sign Board with tensorflow and show accuracy performance for train / valid / test data set. For getting high-performance NVIDIA GPU processing, I have used my private system environment.
 
 My personal system has;
 
-* Ubuntu 16.04 TLS
-* GTX 1080ti 
-* 240GB SSD HDD  
+* __Ubuntu 16.04 TLS__
+* __GTX 1080Ti__ 
+* __240GB SSD HDD__  
 
 I have each goals as following.
-
 
 
 * Load the data set (see below for links to the project data set)
@@ -38,32 +37,20 @@ I have each goals as following.
 [DLImage]:./plotimage/DLImage.png "DownloadSign"
 [DLImagePrediction]:./plotimage/DLImagePrediction.png "DLPrediction"
 
-
-
-[image1]: ./examples/visualization.jpg "Visualization"
-[image2]: ./examples/grayscale.jpg "Grayscaling"
-[image3]: ./examples/random_noise.jpg "Random Noise"
-[image4]: ./examples/placeholder.png "Traffic Sign 1"
-[image5]: ./examples/placeholder.png "Traffic Sign 2"
-[image6]: ./examples/placeholder.png "Traffic Sign 3"
-[image7]: ./examples/placeholder.png "Traffic Sign 4"
-[image8]: ./examples/placeholder.png "Traffic Sign 5"
-
 ## Rubric Points
 ### Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/481/view) individually and describe how I addressed each point in my implementation.  
 
----
+***
 ### My Writeup Summary Report
 ***
 
-### Data Set Summary & Exploration
+# 1. Data Set Summary & Exploration 
+ 
+* Data consists of 3 main category **train** and **validation**, **test** image data set, which are packed into pickle format. I used numpy and pandas module to extract numpy data format from pickle files, so that next image preprocessing can smoothly accept it.  
 
-#### 
-* Data consists of 3 parts, training data and validation, test data image, those are packed into pickle data format. Thus I have determined to use numpy and pandas module to handle those data format, so that next image preprocessing can smoothly accept it.  
+As a result of further analysis of data exploration, I have found following overview of the data set:
 
-As a result of my further analysis of data exploration, I have found following overview of the data set:
-
-#### 1. Train / Test / Validattion Data Summary ####
+## 1. Train / Test / Validattion Data Summary ####
 
 First of all, traffic signboard data set is:
 
@@ -74,9 +61,10 @@ First of all, traffic signboard data set is:
 * All are colored image having 3 channels. (might need to change B&W image.)
 * The number of unique classes/labels in the data set is 43
 
-#### 2. Include an exploratory visualization of the dataset.
+## 2. Include an exploratory visualization of the dataset.
 
-Secondly, I have generated histogram against train, test, validation data set how label-id are distributed over those 3 types of signboard images. Looking at histgraph carefully, some of label id like SpeedLimit signboard has shown strong biases, which means having much volume of data than any other label id like trun left or turn right etc. Here is my visualiztion of the data set exploralization.   
+Secondly, I build histogram chart against train, test, validation data set how Traffic Sign labels are distributed over the whole data. In the overview of histgraph chart, some of label (eg. SpeedLimit 30km) has strong data biases, which means having much volume of data set than any other label (eg. trun left or turn right etc.). 
+Here is my visualiztion of the data set exploralization.   
 
 __Training Data__
 ![alt text][trainhist]
@@ -89,10 +77,12 @@ The below is a part of raw traffic sign images.
 
 ![alt text][signboard]
 
-### Design and Test a Model Architecture
+# 2. Design and Test a Model Architecture
 
-#### 1. GrayScale Preprocess
-First of all, I have converted all colored images to gray scale using cv2 YCrBr method. The reason why I have choosed gray scape as first step is that I need to get rid out of any unnecessary colored cordination data and shrink dimention to 1, moreover to strength siginificant features of each images.
+## Preprocessing 
+### 2.1. GrayScale Preprocess
+First of all, I have converted all colored images to gray scale using opencv YCrBr methodology. The reason why I have choosed to change gray scale is that I need to get rid out of any unnecessary colored cordination data and shrink dimention to 1, moreover to strength siginificant features of each images.
+In special I have selected Y channel to feature Luminance component as described following brief explanation.
 
 The below images are my random sample gray images.
 
@@ -118,15 +108,15 @@ The below images are my random sample gray images.
 Perceptual difference between Red and Orange is less even in the outdoor image as compared to LAB.
 White has undergone change in all 3 components.
 
+**Result of Gray Image**
 
 ![alt text][gray_scale]
 
-then I have applied the image scaling to normalize data set image, which are divided with float number 255 (float number is necessary to get float result after deviding.). In some normalization cases, -0.5 is deducted after image is devided with 255., but I have used [0-1] normalization as standard image processes. Normalized image data is saved into python class module variables as memory based.
+then I have applied the image scaling to normalize data set image, which are divided with float number 255. In some normalization cases, -0.5 is deducted to give center of image, but I have used [0-1] normalization as standard image processes. Normalized image data is saved into python class module variables as memory based.
 
+### 2.2. Data Augmentation Preprocess
 
-#### 2. Data Augmentation Preprocess
-
-Generally, data has to have good diversity as the object of interest needs to be present in varying sizes, lighting conditions and poses if desiring that our network generalizes well during training and testing phase. To overcome this problem of limited quantity and limited diversity of data for aquiring best performance of data training and testing, I have used data augmentation technique, which twisted image data using rotation, Shearing, and adjusting brightess. The below indicates a part of my program code.
+Generally, data has to have good diversity as the object of interest needs to be present in varying sizes, lighting conditions and poses during training and testing phase. To overcome this problem of limited quantity and limited diversity of data for aquiring best performance of data training and testing, I have applied augmentation technique, which modified image data which has combination of rotation, Shearing, and adjusting brightess. The below indicates a part of my program code.
 
 ```
         ang_rot = np.random.uniform(ang_range)-ang_range/2
@@ -159,21 +149,22 @@ Generally, data has to have good diversity as the object of interest needs to be
 
 ```
 
+
+**Result of Augmentation**
+
 ![alt text][augmentation]
 
-#### 3. Increased Data size to fullfill imbalanced data size over traffic sign label.
-As shown in the previous section, traffice sign data has strong data bias which means there are mounts of speed limit sign boards other than small data set of road construction sign. If we proceed to raw train biased data volume per each label, then classifier will be out of right descision to determine undermined class label image, also might return inaccurate class label for unidentified images or tweeked images. 
-
-The below is result graph after I have adjusted balancing data.
+### 2.3. Increased Data size to fullfill imbalanced data size over traffic sign label.
+As indicated in the previous section, traffice sign data has strong data bias which means there are mounts of speed limit sign boards other than small data set of road construction sign. If we proceed to train biased data, then final classifier model will be out of right descision to determine small amount of label image, also might return inaccurate results for unidentified images or tweeked images. 
+To overcome biased data image, I have intentionally increased small amount of label image, so that all labels are equally distributed. 
 
 ![alt text][balanced_label]
 
-#### Desgined Model & Hyper Parameters, Adjustment 
+### 2.4 Desgined Model Architecture 
 
-I have tested 3 different model types to tain TrafficSign (Augmentation Image)
+I have tested 2 different model types to tain TrafficSign (Augmentation Image)
 
-
-#### 1.0 Standard LeNet Model 
+#### a. Standard LeNet Model 
 
 | Layer         		|     Description	        	| 
 |:---------------------:|:---------------------------------------------:| 
@@ -193,7 +184,7 @@ I have tested 3 different model types to tain TrafficSign (Augmentation Image)
 | ***Fully Connected (fc3)***  | Input 84 Output 43  | 
 | logits		|   ***fc3***    		| 
 
-#### 1.1 Enhanced LeNet Model 
+#### b. Enhanced LeNet Model 
 
 | Layer         		|     Description	        	| 
 |:---------------------:|:---------------------------------------------:| 
@@ -215,9 +206,13 @@ I have tested 3 different model types to tain TrafficSign (Augmentation Image)
 | logits		|   ***fc2***       		| 
 
 
-#### 2. Hyper Parameters on Tensorflow training.
 
-To train the model, I used following hyper parameters:;
+
+
+
+### 3. Model Training
+
+To train the model, I gave following hyper parameters to Lenet model;
 
 EPOCHS:__32__
 BATCH_SIZE: __64__
@@ -225,14 +220,6 @@ learning_rate : __0.001__
 Optimizer : __AdmOptimizer__
 loss function : __tf.nn.softmax_cross_entropy_with_logits__ 
 
-
-
-#### 4. Describe the approach taken for finding a solution and getting the validation set accuracy to be at least 0.93. Include in the discussion the results on the training, validation and test sets and where in the code these were calculated. Your approach may have been an iterative process, in which case, outline the steps you took to get to the final solution and why you chose those steps. Perhaps your solution involved an already well known implementation or architecture. In this case, discuss why you think the architecture is suitable for the current problem.
-
-My final model results were:
-* training set accuracy of 0.99 (best performance from LeNet2)
-* validation set accuracy of 0.98 
-* test set accuracy of .98
 
 If an iterative approach was chosen:
 * First of all, I have applied standard LeNet model architecture which accuracy score begins with 83%. With initial learning rate 0.001, accuracy score was gradually being improved upto 94% at final step of EPOCH. This is 1% score improvment than benchmark score, but it is not good enough to judge whether I am able to design best performance model for augmentation images. Though it is not big issue of building best scoring model for Traffic Sign board identifiation, I think there might have any possibilities to enhance training model to preciously fit data set of aumentation images.   
@@ -243,11 +230,16 @@ If an iterative approach was chosen:
 *** Decrease Fully connected Layer = Shrink 84 features after flattened 688 features, finally 43 features.  
 * As a result of above modification on LeNet model, I was able to obtain best score 99% while training and validating data set image.
 * Due to handle tiny image size compared with other sofisticated model (AlexNet etc.) on machine learning competition, I have not touched any other hyper parameters except learning rate.
-* 
 
-### Test a Model on New Images
+__Then I obtained accuracy score from final model__:
+* training set accuracy of 0.99 (best performance from LeNet2)
+* validation set accuracy of 0.98 
+* test set accuracy of .98
 
-#### 1. Choose five German traffic signs found on the web and provide them in the report. For each image, discuss what quality or qualities might be difficult to classify.
+
+# 3. Test a Model on New Images
+
+## 3.1. Choose five German traffic signs found on the web and provide them in the report. For each image, discuss what quality or qualities might be difficult to classify.
 
 I have setup several traffic sign images downloaed broadwidely from web page. I have picked up 24 different images other than 5 images, since I would check several images having different shape of sign boards, also having many kinds of backgrounds behind the traffic sign.
 
@@ -255,26 +247,22 @@ I have setup several traffic sign images downloaed broadwidely from web page. I 
 
 * *Before starting classification I have designed, personally I thought the model would have 50-60% accuracy for data set of raw images. The reason why I had so negative is that some of traffic signs are not correctly captured, but also they have many types of background images like curved roads in rural area and many types of weather conditions etc0. Thus, it would be hard to recognize these twisted image objects with neural networl models.* 
 
-#### 2. Discuss the model's predictions on these new traffic signs and compare the results to predicting on the test set. At a minimum, discuss what the predictions were, the accuracy on these new predictions, and compare the accuracy to the accuracy on the test set (OPTIONAL: Discuss the results in more detail as described in the "Stand Out Suggestions" part of the rubric).
+## 3.2. Discuss the model's predictions on these new traffic signs and compare the results to predicting on the test set. At a minimum, discuss what the predictions were, the accuracy on these new predictions, and compare the accuracy to the accuracy on the test set (OPTIONAL: Discuss the results in more detail as described in the "Stand Out Suggestions" part of the rubric).
 
 I got following prediction result from downloaded images after applying the trained model.
 I have successfully taken right 75% accuracy score. But the score is less 20% than test score which I took in training processing. 
-See the below result score for each downloaded images.
+See the attached result score for each downloaded images.
 
 ![alt text][DLImagePrediction]
 
 
-The reason why I obtained 75% accuracy score from test images is
+The reason why I obtained 75% accuracy score from downloaded images is
 * Original Image sizes are not constant, some of larges, other small etc. 
 * Image is heavily distorted when shrinking big image to default entry image size (32x32). It means to drain some of significant data from original ones.
 * Image is pictured with any kinds of background like road, building
 * Some Signboard is not pictured in center of image, thus hard to understand where traffic image is seen by machine learning model.
 
-
-...
-
-#### 3. Describe how certain the model is when predicting on each of the five new images by looking at the softmax probabilities for each prediction. Provide the top 5 softmax probabilities for each image along with the sign type of each probability. (OPTIONAL: as described in the "Stand Out Suggestions" part of the rubric, visualizations can also be provided such as bar charts)
-
+## 3.3. Describe how certain the model is when predicting on each of the five new images by looking at the softmax probabilities for each prediction. Provide the top 5 softmax probabilities for each image along with the sign type of each probability. (OPTIONAL: as described in the "Stand Out Suggestions" part of the rubric, visualizations can also be provided such as bar charts)
 
 
 The code for making predictions on my final model is located in the 11th cell of the Ipython notebook.
