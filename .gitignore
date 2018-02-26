@@ -5,3 +5,6 @@ test*/
 .ipynb_checkpoints/
 .DS_Store/
 .DS_Store
+data*/
+video-term1/
+*simulator*/
