@@ -36,6 +36,8 @@ I have each goals as following.
 [balanced_label]:./plotimage/balanced_label.png "balanced_label"
 [DLImage]:./plotimage/DLImage.png "DownloadSign"
 [DLImagePrediction]:./plotimage/DLImagePrediction.png "DLPrediction"
+[DLImageSoftMax]:./plotimage/DLImageSoftMax.jpeg "DLPredictionSoftMax"
+
 
 ## Rubric Points
 ### Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/481/view) individually and describe how I addressed each point in my implementation.  
@@ -267,18 +269,11 @@ The reason why I obtained 75% accuracy score from downloaded images is
 
 The code for making predictions on my final model is located in the 11th cell of the Ipython notebook.
 
-For the first image, the model is relatively sure that this is a stop sign (probability of 0.6), and the image does contain a stop sign. The top five soft max probabilities were
-
-| Probability         	|     Prediction	        					| 
-|:---------------------:|:---------------------------------------------:| 
-| .60         			| Stop sign   									| 
-| .20     				| U-turn 										|
-| .05					| Yield											|
-| .04	      			| Bumpy Road					 				|
-| .01				    | Slippery Road      							|
+Regarding with prediction using softmax probabilities, I obtained following result from tensorflow tf.nn.softmax and tf.nn.top_k function.
+As proved in training section from where I see high accuracy score, Model trained with augmentation image data set performs well that it has 100% probability indicating exact same traffic sign as origin label (eg. ChildrenCrossing NoEntry) It cerntainly has designed to classify German Traffic Sign, however the model did not have any proper capability to classify several images like AheadOnly with right label, that showed just only 2.4% probability for selecting correct label.  
 
 
-For the second image ... 
+![alt text][DLImageSoftMax]
 
 ### (Optional) Visualizing the Neural Network (See Step 4 of the Ipython notebook for more details)
 #### 1. Discuss the visual output of your trained network's feature maps. What characteristics did the neural network use to make classifications?
