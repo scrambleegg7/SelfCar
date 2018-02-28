@@ -166,27 +166,8 @@ To overcome biased data image, I have intentionally increased small amount of la
 
 I have tested 2 different model types to tain TrafficSign (Augmentation Image)
 
-#### a. Standard LeNet Model 
 
-| Layer         		|     Description	        	| 
-|:---------------------:|:---------------------------------------------:| 
-| ***Input***          | 32x32x1 single image    		| 
-| ***Convolution 1*** filter 5 x 5    | 1x1 stride, valid padding, outputs: 28x28x6  	|
-| ReLu		|   ReLu(***Convolution1***)       			|
-| ***Max pooling 1***	      	| 2x2 stride,  outputs 14x14x6 	|
-| Input for Convolution2         | 14x14x6  (fromm MaxPooling1)   		| 
-| ***Convolution2*** filer 5 x 5 |  1x1 stride, valid padding, outputs: 10x10x16     		|
-| ReLu		|   ReLue(***Convolution2***)       			|
-| ***Max pooling 2***	      	| 2x2 stride,  outputs 5x5x16 	|
-| ***Flatten***		| Input 5x5x16 output 400        |
-| ***Fully Connected (fc1)***  | Input 400 Output 120  | 
-| ReLu		|   ReLue(***fc1***)       		| 
-| ***Fully Connected (fc2)***  | Input 120 Output 84  | 
-| ReLu		|   ReLue(***fc2***)       		| 
-| ***Fully Connected (fc3)***  | Input 84 Output 43  | 
-| logits		|   ***fc3***    		| 
-
-#### b. Enhanced LeNet Model 
+#### Enhanced LeNet Model 
 
 | Layer         		|     Description	        	| 
 |:---------------------:|:---------------------------------------------:| 
@@ -208,10 +189,6 @@ I have tested 2 different model types to tain TrafficSign (Augmentation Image)
 | logits		|   ***fc2***       		| 
 
 
-
-
-
-
 ### 3. Model Training
 
 To train the model, I gave following hyper parameters to Lenet model;
@@ -224,10 +201,10 @@ loss function : __tf.nn.softmax_cross_entropy_with_logits__
 
 
 If an iterative approach was chosen:
-* First of all, I have applied standard LeNet model architecture which accuracy score begins with 83%. With initial learning rate 0.001, accuracy score was gradually being improved upto 94% at final step of EPOCH. This is 1% score improvment than benchmark score, but it is not good enough to judge whether I am able to design best performance model for augmentation images. Though it is not big issue of building best scoring model for Traffic Sign board identifiation, I think there might have any possibilities to enhance training model to preciously fit data set of aumentation images.   
+* First of all, I have applied standard LeNet model (2 Convolutional Layer) architecture which accuracy score begins with 83%. With initial learning rate 0.001, accuracy score was gradually being improved upto 94% at final step of EPOCH. This is 1% score improvment than benchmark score, but it is not good enough to judge whether I am able to design best performance model for augmentation images. Though it is not big issue of building best scoring model for Traffic Sign board identifiation, I think there might have any possibilities to enhance training model to preciously fit data set of aumentation images.   
 * What I modified as main points are;
 *** Use Batch Normalization Technique, but accuracy is not developed to show good performance than I expected. I have removed this function.  
-*** add one additional layer (Convolutional layer 3)
+*** add one additional layer (Convolutional layer increased to 3 layers)
 *** increase filter number to 48 from convolutional layer 1
 *** Decrease Fully connected Layer = Shrink 84 features after flattened 688 features, finally 43 features.  
 * As a result of above modification on LeNet model, I was able to obtain best score 99% while training and validating data set image.
@@ -235,8 +212,8 @@ If an iterative approach was chosen:
 
 __Then I obtained accuracy score from final model__:
 * training set accuracy of 0.99 (best performance from LeNet2)
-* validation set accuracy of 0.98 
-* test set accuracy of .98
+* validation set accuracy of 0.96 
+* test set accuracy of .95
 
 
 # 3. Test a Model on New Images
@@ -270,10 +247,12 @@ The reason why I obtained 75% accuracy score from downloaded images is
 The code for making predictions on my final model is located in the 11th cell of the Ipython notebook.
 
 Regarding with prediction using softmax probabilities, I obtained following result from tensorflow tf.nn.softmax and tf.nn.top_k function.
-As proved in training section from where I see high accuracy score, Model trained with augmentation image data set performs well that it has 100% probability indicating exact same traffic sign as origin label (eg. ChildrenCrossing NoEntry) It cerntainly has designed to classify German Traffic Sign, however the model did not have any proper capability to classify several images like AheadOnly with right label, that showed just only 2.4% probability for selecting correct label.  
+As proved in training section from where I see high accuracy score, Model trained with augmentation image data set performs well that it has 100% probability indicating exact same traffic sign as origin label (eg. ChildrenCrossing NoEntry) It cerntainly has designed to classify German Traffic Sign, however the model did not have cognition capability to classify several images like RoadWork2, that showed just a tiny probability for selecting correct label.
 
 
 ![alt text][DLImageSoftMax]
+
+also, I have build barChart figure which shows top5 softmax probabilities of predicted sign labels. 
 
 ### (Optional) Visualizing the Neural Network (See Step 4 of the Ipython notebook for more details)
 #### 1. Discuss the visual output of your trained network's feature maps. What characteristics did the neural network use to make classifications?
