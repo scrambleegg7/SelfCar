@@ -31,12 +31,14 @@ I have each goals as following.
 [testhist]:./plotimage/test_label.png "test histogram"
 [validhist]:./plotimage/valid_label.png "valid histogram"
 [signboard]:./signboard_img/label0-7.jpeg "label0-7 signboard"
-[augmentation]:./plotimage/augmentation.jpeg "augmentation"
+[augmentation]:./plotimage/augmentation.png "augmentation"
 [gray_scale]:./plotimage/gray_scale.jpeg "gray_scale"
 [balanced_label]:./plotimage/balanced_label.png "balanced_label"
 [DLImage]:./plotimage/DLImage.png "DownloadSign"
 [DLImagePrediction]:./plotimage/DLImagePrediction.png "DLPrediction"
-[DLImageSoftMax]:./plotimage/DLImageSoftMax.jpeg "DLPredictionSoftMax"
+[DLImageSoftMax]:./plotimage/DLImageTop5Softmax.png "DLPredictionSoftMax"
+[barChart]:./plotimage/barChart.png "barChart"
+[pool1Features]:./plotimage/Pool1Features.png "Features"
 
 
 ## Rubric Points
@@ -150,7 +152,7 @@ Generally, data has to have good diversity as the object of interest needs to be
         #  img = augment_brightness_camera_images(img)
 
 ```
-
+Additionally, I have blended "cutout" method as well as the above mentioned augmentation technique. Please see the reference document about ["Coutout".](https://arxiv.org/abs/1708.04552)
 
 **Result of Augmentation**
 
@@ -164,32 +166,32 @@ To overcome biased data image, I have intentionally increased small amount of la
 
 ### 2.4 Desgined Model Architecture 
 
-I have tested 2 different model types to tain TrafficSign (Augmentation Image)
 
-
-#### Enhanced LeNet Model 
+#### Enhanced LeNet final Model used for training 
 
 | Layer         		|     Description	        	| 
 |:---------------------:|:---------------------------------------------:| 
 | ***Input***          | 32x32x1 single image    		| 
-| ***Convolution 1*** filter 5 x 5    | 1x1 stride, valid padding, outputs: 28x28x48	|
+| ***Convolution 1*** filter 5 x 5    | 1x1 stride, **same** padding, outputs: 32x32x32	|
 | ReLu		|   ReLu(***Convolution1***)       			|
-| ***Max pooling 1***	      	| 2x2 stride,  outputs 14x14x48 	|
-| dropout	      	|  keep_prob = 0.5 |
-| Input for Convolution2         | 14x14x48  (fromm MaxPooling1)   		| 
-| ***Convolution2*** filer 5 x 5 |  1x1 stride, valid padding, outputs: 10x10x96     		|
+| ***Pooling1***	      	| 2x2 stride,  outputs 16x16x32 	|
+| dropout	      	|  keep_prob = 0.9 |
+| Input for Convolution2         | 16x16x32  (fromm MaxPooling1)   		| 
+| ***Convolution2*** filer 5 x 5 |  1x1 stride, **same** padding, outputs: 16x16x64     		|
 | ReLu		|   ReLue(***Convolution2***)       			|
-| ***Max pooling 2***	      	| 2x2 stride,  outputs 5x5x96 	|
-| dropout	      	|  keep_prob = 0.5 |
-| ***Convolution3*** filer 3 x 3 |  1x1 stride, valid padding, outputs: 3x3x172     		|
-| ReLu		|   ReLue(***Convolution2***)       			|
-| ***Max pooling 3***	      	| 2x2 stride,  outputs 2x2x172 	|
-| dropout	      	|  keep_prob = 0.5 |
-| ***Flatten***		| Input 2x2x172 --> output 688        |
-| ***Fully Connected (fc1)***  | Input 688 Output 84  | 
-| ReLu		|   ReLue(***fc1***)       		| 
-| ***Fully Connected (fc2)***  | Input 84 Output 43  | 
-| logits		|   ***fc2***       		| 
+| ***Pooling 2***	      	| 2x2 stride,  outputs 8x8x64 	|
+| dropout	      	|  keep_prob = 0.8 |
+| ***Convolution3*** filer 5 x 5 |  1x1 stride, **same** padding, outputs: 8x8x128     		|
+| ReLu		|   ReLue(***Convolution3***)       			|
+| ***Pooling 3***	      	| 2x2 stride,  outputs 4x4x128 	|
+| dropout	      	|  keep_prob = 0.7 |
+| ***Flatten1***		| Pooling(Pool1) Size4--> output 512 |
+| ***Flatten2***		| Pooling(Pool2) Size2--> output 1024       |
+| ***Flatten3***		| Input 4x4x128 --> output 2048       |
+| ***Connecatenated***  | Flatten1 Flatten2 Flatten3  | 
+| ***Fully Connected (fc3)***  | Input 3584 Output 1024  | 
+| ***Fully Connected (fc4)***  | Input 1024 Output 43  | 
+| logits		|   logits       		| 
 
 
 ### 3. Model Training
@@ -197,8 +199,8 @@ I have tested 2 different model types to tain TrafficSign (Augmentation Image)
 To train the model, I gave following hyper parameters to Lenet model;
 
 EPOCHS:__32__
-BATCH_SIZE: __64__
-learning_rate : __0.001__
+BATCH_SIZE: __128__
+learning_rate : __0.0007__
 Optimizer : __AdmOptimizer__
 loss function : __tf.nn.softmax_cross_entropy_with_logits__ 
 
@@ -208,15 +210,16 @@ If an iterative approach was chosen:
 * What I modified as main points are;
 *** Use Batch Normalization Technique, but accuracy is not developed to show good performance than I expected. I have removed this function.  
 *** add one additional layer (Convolutional layer increased to 3 layers)
-*** increase filter number to 48 from convolutional layer 1
-*** Add Dropout layer to set keep prob = 0.5
-*** Decrease Fully connected Layer = Shrink 84 features after flattened 688 features, finally 43 features.  
-* As a result of above modification on LeNet model, I was able to obtain best score 93% while training and validating data set image.
-* Due to handle tiny image size compared with other sofisticated model (AlexNet etc.) on machine learning competition, I have not touched any other hyper parameters except learning rate.
+*** increase filter number to 32 from convolutional layer 1
+*** set Same instead of Valid on convolution layer
+*** Add Dropout layer to set keep prob = 0.9 0.8 0.7
+*** concantenate pool1 pool2 pool3 after max pooling for fully-connection layer  
+* Due to huge size of Augmentation image data, I have made 30% test data from StratifiedShuffleSplit function. It is used to validate how training process accelarate to learn images with the convolutional layered model. 
+* As a result of above modification on LeNet model, I was able to obtain best score 99% from training split data. (Please see 23 on Traffic_Sign html page.)
 
 __Then I obtained accuracy score from final model__:
-* training set accuracy of 0.93 (best performance from LeNet3)
-* validation set accuracy of 0.98
+* training set accuracy of 0.99 (best performance from LeNet3)
+* validation set accuracy of 0.95
 * test set accuracy of .96
 
 
@@ -232,13 +235,12 @@ I have setup several traffic sign images downloaed from web pages. I have picked
 
 ## 3.2. Discuss the model's predictions on these new traffic signs and compare the results to predicting on the test set. At a minimum, discuss what the predictions were, the accuracy on these new predictions, and compare the accuracy to the accuracy on the test set (OPTIONAL: Discuss the results in more detail as described in the "Stand Out Suggestions" part of the rubric).
 
-I got following prediction result from downloaded images after applying the trained model.
-I have successfully taken right 75% accuracy score. But the score is less 20% than test score which I took in training processing. 
-See the attached result score for each downloaded images.
+See following prediction result from downloaded images. 
+I have successfully generated right 84% accuracy score. But the score is less 16% than test score which I took in training processing. 
 
 ![alt text][DLImagePrediction]
 
-The reason why I obtained 75% accuracy score from downloaded images is
+The reason why I obtained 84% accuracy score from downloaded images is
 * Downloaded Image size is not constant, some of larges, other small, in a result to resize images to 32 x 32 so that they fit to designed convolutional model. 
 * Image is heavily distorted when shrinking big image to default entry image size (32x32). It means to drain some of significant data from original ones.
 * Image is pictured with any kinds of background like road, building etc.
@@ -247,16 +249,19 @@ The reason why I obtained 75% accuracy score from downloaded images is
 ## 3.3. Describe how certain the model is when predicting on each of the five new images by looking at the softmax probabilities for each prediction. Provide the top 5 softmax probabilities for each image along with the sign type of each probability. (OPTIONAL: as described in the "Stand Out Suggestions" part of the rubric, visualizations can also be provided such as bar charts)
 
 
-Regarding with prediction using softmax probabilities, I obtained following result from tensorflow tf.nn.softmax and tf.nn.top_k function.
-As proved in training section from where I see high accuracy score, Model trained with augmentation image data set performs well that it has 100% probability indicating exact same traffic sign as origin label (eg. ChildrenCrossing NoEntry) It cerntainly has designed to classify German Traffic Sign, however the model did not have cognition capability to classify several images like RoadWork2, that showed just a tiny probability for selecting correct label.
-
+Regarding with softmax probabilities, see below top5 probabilities list for each predicted label from trained model. 
+As observed in training section to show high accuracy score, Model trained with augmentation image data set performs well that it has 100% probability indicating exact same traffic sign as origin label (eg. ChildrenCrossing NoEntry) It cerntainly has designed to classify German Traffic Sign, however the model did not have enough cognition capability to classify several images like roadwork2. The model will be not deployed in real world.
 
 ![alt text][DLImageSoftMax]
 
 also, I have build barChart figure which shows top5 softmax probabilities of predicted sign labels. 
 
-### (Optional) Visualizing the Neural Network (See Step 4 of the Ipython notebook for more details)
+![alt text][barChart]
+
+
+# (Optional) Visualizing the Neural Network (See Step 4 of the Ipython notebook for more details)
 #### 1. Discuss the visual output of your trained network's feature maps. What characteristics did the neural network use to make classifications?
 
-Yes, I have tried to extract features map from a top of conbolutional layer, conv1, which has 14x14 size x 48 filters. The output images have unique pattern to strength features of each images with sriding window (striding) and max pooling technique, that one of most advanced filter technique on neural network.
+Yes, I have tried to extract features map from a top of convolutional layer, conv1, which has 16 x 16 dimention and size 32 filters panels. As seen in below screen image, those output images definitely display unique pattern which strength features of each images with sriding windowand max pooling technique.
 
+![alt text][pool1Features]
