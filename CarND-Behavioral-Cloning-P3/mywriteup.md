@@ -1,12 +1,15 @@
 # **Behavioral Cloning** 
 
-## Writeup Template
-
-### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
+## My Writeup report
 
 ---
 
 **Behavioral Cloning Project**
+
+It is 3rd project UdaCity setup for students attended in UdaCity Self Driving Car Engineer Term1 cource.
+Project require to use keras module for training, testing and generating model result file to drive autonomous drive simulator.
+The final goal teach keras models how to drive virtual car well in simulation cource,
+thus I have setup following specific goals step by step. 
 
 The goals / steps of this project are the following:
 * Use the simulator to collect data of good driving behavior
@@ -14,7 +17,6 @@ The goals / steps of this project are the following:
 * Train and validate the model with a training and validation set
 * Test that the model successfully drives around track one without leaving the road
 * Summarize the results with a written report
-
 
 [//]: # (Image References)
 
