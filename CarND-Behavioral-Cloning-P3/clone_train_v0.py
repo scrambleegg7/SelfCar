@@ -14,30 +14,18 @@ from skimage.io import imread
 from keras.models import Sequential
 from keras.layers import Flatten, Dense   
 
+from sklearn.utils import shuffle
 
-def nVidiaModel(model):
-    """
-    Creates nVidea Autonomous Car Group model
-    """
-    #model = createPreProcessingLayers()
-    model.add(Convolution2D(24,5,5, subsample=(2,2), activation='relu'))
-    model.add(Convolution2D(36,5,5, subsample=(2,2), activation='relu'))
-    model.add(Convolution2D(48,5,5, subsample=(2,2), activation='relu'))
-    model.add(Convolution2D(64,3,3, activation='relu'))
-    model.add(Convolution2D(64,3,3, activation='relu'))
-    model.add(Flatten())
-    model.add(Dense(100))
-    model.add(Dense(50))
-    model.add(Dense(10))
-    model.add(Dense(1))
-
-return model
+from utils import displayImage
+from nVidiaModel import nVidiaModelClass
 
 def loadData(sample=False):
 
-    baseDir = "./data"
-    driving_log_file = "driving_log.csv"
-    driving_log = os.path.join(baseDir,driving_log_file)
+    baseDir = "data"
+    filename = "driving_log.csv"
+    
+    cwd = os.path.join( os.getcwd(), baseDir )
+    driving_log = os.path.join(cwd, filename)
 
     if sample:
         df_drive = pd.read_csv(driving_log)
@@ -51,7 +39,9 @@ def loadData(sample=False):
     assert( len(centerImagesPath) == len(Steering)) 
 
     if sample:
-        images = list(map(lambda file:imread( os.path.join(baseDir, file)   ) , centerImagesPath  ))
+        print("Read sample data..")
+        imageDir = os.path.join(cwd,"IMG")
+        images = list(map(lambda file:imread( os.path.join(imageDir, file.split("/")[-1]   )   ) , centerImagesPath  ))
     else:
         images = list(map(lambda file:imread( file   ) , centerImagesPath  ))
         
@@ -64,16 +54,21 @@ def train():
     print("X_train shape", X_train.shape)
     print("y_train shape", y_train.shape)
 
-    imshape = X_train.shape
+    X_train, y_train = shuffle(X_train,y_train)
 
-    model = Sequential()
-    model.add( Flatten( input_shape=imshape[1:] )  )
-    model.add(Dense(1))
+    #displayImage( X_train[:32], y_train[:32]  )
+
+
+    model = nVidiaModelClass().nVidiaModel()
+    #model = Sequential()
+    #model.add( Flatten( input_shape=(160,320,3) ) ) 
+    #model.add(Dense(1))
 
     model.compile(loss="mse", optimizer="adam")
-    model.fit(X_train,y_train, validation_split=0.2, shuffle=True, nb_epoch=7)
+    model.fit(X_train,y_train, validation_split=0.3, shuffle=True, nb_epoch=2)
 
-    model.save("model.h5")
+    model_file = os.path.join("testmodel","model.h5")
+    model.save(model_file)
 
 def main():
 
