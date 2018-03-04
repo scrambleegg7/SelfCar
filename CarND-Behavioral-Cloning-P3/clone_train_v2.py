@@ -27,6 +27,7 @@ from keras.optimizers import SGD, Adam, Nadam
 
 from utils import displayImage
 from nVidiaModel import nVidiaModelClass
+from Parameter import ParametersClass
 
 from keras import backend as K
 
@@ -110,7 +111,10 @@ class ImageDataObject():
         angles = []        
         for idx, ( image_sample, angle_sample ) in enumerate( zip( image_samples, angle_samples )  ):
             name = os.path.join( self.cwd, image_sample.split("/")[-1] )
-            
+
+            #
+            # flip image with 50% chance
+            #
             drive_image = self.readImage(name)
             if np.random.random() < 0.5:
                 drive_image = cv2.flip(drive_image, 1)
@@ -120,9 +124,6 @@ class ImageDataObject():
             images.append(drive_image)
             angles.append(angle_sample)
         
-            #
-            # flip image with 50% chance
-            #
 
         return shuffle( np.array( images ), np.array( angles ) )
 
@@ -207,12 +208,12 @@ class DataObject():
         mask_left_20 = int( np.sum(mask_left_small_angle) * shrink_rate )
         mask_right_20 = int( np.sum(mask_right_small_angle) * shrink_rate )
 
-        # drop 80% straight line data
+        # drop off  straight line data
         Steering_center_small = np.random.choice(Steering_center[mask_center_small_angle], mask_center_20 )  
         Steering_left_small = np.random.choice(Steering_left[mask_left_small_angle], mask_left_20 ) 
         Steering_right_small = np.random.choice(Steering_right[mask_right_small_angle], mask_right_20 ) 
 
-        # concatenate steep steering angle + 20% straight line
+        # concatenate steep steering angle + some straight line data
         Steering_center = np.concatenate( [ Steering_center[mask_center], Steering_center_small ] )
         Steering_left = np.concatenate( [ Steering_left[mask_left], Steering_left_small ] )
         Steering_right = np.concatenate( [Steering_right[mask_right], Steering_right_small ] )
@@ -256,8 +257,13 @@ def parameters():
     parser.add_argument('--remove_straight_angle', default=None, type=float, help="Remove all training data with steering angle less than this. Useful for getting rid of straight bias")
     parser.add_argument('--save_generated_images', action='store_true', help="Location to save generated images to")
     parser.add_argument('--load_model', type=str, help="For transfer learning, here's the model to start with")
-    parser.add_argument('--directory', type=str, default='data', help="Directory for training data")
+    parser.add_argument('--directory', type=str, default=None, help="Directory for training data")
     parser.add_argument('--learning_rate', type=float, default=.001)
+    #parser.add_argument('--header', type=bool, default=True)
+    parser.add_argument('--header', dest='header', action='store_true')
+    parser.add_argument('--no-header', dest='header', action='store_false')
+    parser.set_defaults(header=True)
+
     args = parser.parse_args()
     return args    
 
@@ -266,42 +272,29 @@ def main():
     BATCH_SIZE = 128
     #(after you are done with the model)
     #K.clear_session()
-    params = parameters()
-    if params.remove_straight_angle is None:
-        print("ERROR")
-        raise Exception("straight angle is BLANK !!!")
-    
+    paramCls = ParametersClass()
+    params = paramCls.initialize()
+    paramCls.checkParams()
+
     print("defined Epochs ", params.epochs)
 
     filename = "driving_log.csv"
-    baseDir = "data"
+    baseDir = params.directory
     learning_rate = params.learning_rate
 
+    print("-"*30)
     print("* EPOCHS *",params.epochs)
     print("* Learning RATE *",params.learning_rate)
-
+    print("* load sample data", params.header)
+    print("-"*30)
+ 
     myData = DataObject()
-    myData.loadCSVData(baseDir, filename, sample = True, remove_straight_angle=params.remove_straight_angle)
+    myData.loadCSVData(baseDir, filename, sample = params.header, remove_straight_angle=params.remove_straight_angle)
     X_train, X_test, y_train, y_test = myData.shuffleSplit(test_size=0.2)
     print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
 
-    ##
-    # merge
-    ##
-    #baseDir="mydata/data1"
-    #myData.loadCSVData(baseDir, filename, sample = False, remove_straight_angle=params.remove_straight_angle)
-    #X_train_1, X_test_1, y_train_1, y_test_1 = myData.shuffleSplit(test_size=0.2)
-    #print(X_train_1.shape, X_test_1.shape, y_train_1.shape, y_test_1.shape)
-
-    #X_train = np.concatenate( [X_train, X_train_1]  )
-    #X_test = np.concatenate( [X_test, X_test_1] )
-    #y_train = np.concatenate( [y_train, y_train_1]  )
-    #y_test = np.concatenate( [y_test, y_test_1]  )
-    #print("*** after merging with personal training data")
-    #print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
-
     nVidia = nVidiaModelClass()
-    model = nVidia.buildModel()
+    model = nVidia.buildModel_drop()
 
     train_generator = generator(X_train, y_train, baseDir, batch_size=BATCH_SIZE)    #, remove_straight_angle=params.remove_straight_angle)
     validation_generator = generator(X_test, y_test, baseDir, batch_size=BATCH_SIZE) #, remove_straight_angle=params.remove_straight_angle)
@@ -312,7 +305,7 @@ def main():
     if keras.__version__ == "1.2.1":
         model.fit_generator(train_generator, samples_per_epoch=X_train.shape[0], \
                 validation_data=validation_generator,  \
-                nb_val_samples=X_test.shape[0], nb_epoch=3, verbose=1)
+                nb_val_samples=X_test.shape[0], nb_epoch=params.epochs, verbose=1)
     else:
          model.fit_generator(train_generator, steps_per_epoch= np.ceil(X_train.shape[0] / BATCH_SIZE), \
                 validation_data=validation_generator,  \

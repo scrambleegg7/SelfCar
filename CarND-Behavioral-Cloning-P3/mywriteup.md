@@ -38,12 +38,13 @@ The goals / steps of this project are the following:
 
 My project includes the following files:
 * model.py containing the script to create and train the model
+* Due to require heavy check routine for image data and setup parameters based on track scenarios (track1 & track2), thus I have setup python class module which has unique function for building / spliting train / test image data and formatting augmentation image for training.  
 * drive.py for driving the car in autonomous mode
 * model.h5 containing a trained convolution neural network 
 * writeup_report.md or writeup_report.pdf summarizing the results
 
 #### 2. Submission includes functional code
-Using the Udacity provided simulator and my drive.py file, the car can be driven autonomously around the track by executing 
+Using the Udacity provided simulator and my drive.py file, the car can be driven autonomously around the track by executing with following code
 ```sh
 python drive.py model.h5
 ```
@@ -56,9 +57,12 @@ The model.py file contains the code for training and saving the convolution neur
 
 #### 1. An appropriate model architecture has been employed
 
-My model consists of a convolution neural network with 3x3 filter sizes and depths between 32 and 128 (model.py lines 18-24) 
+Inspired by [End-to-End document](http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf) , I have desinged nVidia Network Framework to train drvie simulator images data. 
+Therefore, model I implemented has 5 convolutional layers and 4 fully-connected layers, in a result to produce single digit (float) number at end of model arhitecture.
+As explained in earlier step, model is written on separated class module 
+(reference is buildModel method of __nVidiaModel.py__)
 
-The model includes RELU layers to introduce nonlinearity (code line 20), and the data is normalized in the model using a Keras lambda layer (code line 18). 
+
 
 #### 2. Attempts to reduce overfitting in the model
 
