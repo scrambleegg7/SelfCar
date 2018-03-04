@@ -180,8 +180,8 @@ class DataObject():
         #   left_angle = min(1.0, center_angle + 0.25)
 
         Steering_center = np.array( df_drive["steering"].tolist() )    
-        Steering_left  = np.array( list( map(lambda steer:  min(1.0, steer + offset), Steering_center.copy() ) )  )  
-        Steering_right = np.array(  list( map(lambda steer: max(-1.0, steer - offset), Steering_center.copy() ) ) )  
+        Steering_left  = np.array( list( map(lambda steer:(steer + offset), Steering_center.copy() ) )  )  
+        Steering_right = np.array( list( map(lambda steer:(steer - offset), Steering_center.copy() ) ) )  
 
         if remove_straight_angle is not None:
             print("Exclude straight line images and angles from training / validation data..")
@@ -202,7 +202,7 @@ class DataObject():
         mask_right_small_angle = (mask_right == False)        
 
         #
-        shrink_rate = 0.01
+        shrink_rate = 0.3
         #
         mask_center_20 = int( np.sum(mask_center_small_angle) * shrink_rate )
         mask_left_20 = int( np.sum(mask_left_small_angle) * shrink_rate )
@@ -259,7 +259,6 @@ def parameters():
     parser.add_argument('--load_model', type=str, help="For transfer learning, here's the model to start with")
     parser.add_argument('--directory', type=str, default=None, help="Directory for training data")
     parser.add_argument('--learning_rate', type=float, default=.001)
-    #parser.add_argument('--header', type=bool, default=True)
     parser.add_argument('--header', dest='header', action='store_true')
     parser.add_argument('--no-header', dest='header', action='store_false')
     parser.set_defaults(header=True)
@@ -269,14 +268,12 @@ def parameters():
 
 def main():
 
-    BATCH_SIZE = 128
+    BATCH_SIZE = 64
     #(after you are done with the model)
     #K.clear_session()
     paramCls = ParametersClass()
     params = paramCls.initialize()
     paramCls.checkParams()
-
-    print("defined Epochs ", params.epochs)
 
     filename = "driving_log.csv"
     baseDir = params.directory
@@ -290,7 +287,7 @@ def main():
  
     myData = DataObject()
     myData.loadCSVData(baseDir, filename, sample = params.header, remove_straight_angle=params.remove_straight_angle)
-    X_train, X_test, y_train, y_test = myData.shuffleSplit(test_size=0.2)
+    X_train, X_test, y_train, y_test = myData.shuffleSplit(test_size=0.3)
     print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
 
     nVidia = nVidiaModelClass()
@@ -307,9 +304,11 @@ def main():
                 validation_data=validation_generator,  \
                 nb_val_samples=X_test.shape[0], nb_epoch=params.epochs, verbose=1)
     else:
-         model.fit_generator(train_generator, steps_per_epoch= np.ceil(X_train.shape[0] / BATCH_SIZE), \
-                validation_data=validation_generator,  \
-                validation_steps= np.ceil( X_test.shape[0] / BATCH_SIZE )  , nb_epoch=params.epochs, verbose=1)
+        steps_per_epch = X_train.shape[0] // BATCH_SIZE
+        valid_steps = X_test.shape[0] // BATCH_SIZE 
+        model.fit_generator(train_generator, steps_per_epoch=steps_per_epch , \
+            validation_data=validation_generator,  \
+            validation_steps= valid_steps  , epochs=params.epochs, verbose=1)
         
     #X,y = (next(train_generator))
     #print(X.shape, y.shape)

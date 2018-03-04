@@ -57,6 +57,33 @@ The model.py file contains the code for training and saving the convolution neur
 
 #### 1. An appropriate model architecture has been employed
 
+For track1, I collect following categorized data summary from original and personal training data of track1.
+
+------------------------------
+Exclude straight line images and angles from training / validation data..
+Omit Angle less than 0.10
+----------------------------------------
+    total length of images / angles   
+ Images - center:10830  left:10830  right:10830 
+ Angles - center:10830  left:10830  right:10830 
+original large center angle counts.. 1566
+original large left angle counts.. 9182
+original large right angle counts.. 404
+
+original small center angle counts.. 9264
+original small left angle counts.. 1648
+original small right angle counts.. 10426
+
+randomly picked up center angle counts.. 9264
+randomly picked up left angle counts.. 1648
+randomly picked up right angle counts.. 10426
+
+Integrated Images - center:(10830,)  left:(10830,)  right:(10830,) 
+Integrated Angles - center:(10830,)  left:(10830,)  right:(10830,) 
+ Train / Test splitted size -->  (27616,) (4874,) (27616,) (4874,)
+2.0.8
+
+
 Inspired by [End-to-End document](http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf) , I have desinged nVidia Network Framework to train drvie simulator images data. 
 Therefore, model I implemented has 5 convolutional layers and 4 fully-connected layers, in a result to produce single digit (float) number at end of model arhitecture.
 As explained in earlier step, model is written on separated class module 
