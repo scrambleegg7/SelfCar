@@ -6,6 +6,7 @@ import cv2
 import os
 
 from skimage.io import imread
+from skimage.transform import resize
 
 from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
 from sklearn.utils import shuffle
@@ -19,6 +20,19 @@ class ImageDataObjectClass():
         self.cwd = cwd
 
         self.remove_straight_angle = remove_straight_angle
+
+    def crop_img(self,image):
+        return image[50:-20,:]
+
+    def getYCrCb(self,image):
+
+        YCrCb = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
+        return YCrCb
+
+    def resize_img(self,image):
+
+        img = resize(image, (66, 200), mode='reflect')
+        return img 
 
     def batch_next(self,offset,BATCH_SIZE=32):
 
@@ -39,6 +53,9 @@ class ImageDataObjectClass():
                 is_flip = False
 
             drive_image = self.readImage(name)
+            # read process and data augmentation 
+            # size changed to 66 x 200 x 3
+            #drive_image = self.readImageAndPreProcess(name)
             if np.random.random() < 0.5 and is_flip:
                 #drive_image = cv2.flip(drive_image, 1)
                 drive_image = np.fliplr(drive_image)
@@ -51,9 +68,19 @@ class ImageDataObjectClass():
             #
             # flip image with 50% chance
             #
-                
 
         return shuffle( np.array( images ), np.array( angles ) )
+
+    def readImageAndPreProcess(self, file_name):
+        #image = cv2.imread(file_name)
+        image = imread(file_name)
+        # add YCrCb to strength Y.
+        image = self.getYCrCb(image)
+        image = self.crop_img(image)
+        image = self.resize_img(image)
+
+        return image
+
 
     def readImage(self, file_name):
         #image = cv2.imread(file_name)

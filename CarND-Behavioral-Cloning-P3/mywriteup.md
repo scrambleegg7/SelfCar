@@ -27,13 +27,7 @@ Keras 2 under tensorflow 1.4
 
 [//]: # (Image References)
 
-[image1]: ./examples/placeholder.png "Model Visualization"
-[image2]: ./examples/placeholder.png "Grayscaling"
-[image3]: ./examples/placeholder_small.png "Recovery Image"
-[image4]: ./examples/placeholder_small.png "Recovery Image"
-[image5]: ./examples/placeholder_small.png "Recovery Image"
-[image6]: ./examples/placeholder_small.png "Normal Image"
-[image7]: ./examples/placeholder_small.png "Flipped Image"
+[nvidia]: ./convmodel/nVidiaNet.png "Model Visualization"
 
 ## Rubric Points
 ### Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
@@ -61,6 +55,9 @@ and then start below command with different terminal.
 
 
 # 3. Submission code is usable and readable
+
+__Note__
+keras recently released new version 2.x, which of some of main layers function have been completely changed to new format. Thus keras 1.2.1 format is not compatible to keras 2.x. I have placed 2 different version program codes on model.py and nVidiaModel.py, thus those can be seemlessly transferred each keras version.  
 
 ### a. model.py
 model.py is a main program to read data streaming and image processing, keras neural networl module.
@@ -110,8 +107,8 @@ Integrated Angles - center:(10830,)  left:(10830,)  right:(10830,)
 ```
 ### d. ImageObject.py
 This is a controller to process track image data, that is called from generator subroutine from model.py program. The main aim has following object; 
-* to receive splitted training / test data
-* build batch sized data
+* to accept splitted training / test data as input parameters
+* build batch segmentation data (default size = 32)
 * read image data with file path, and image data is automatiically converted with skimage.io.imread method.
 * for center angle image, select flip image with 50% random chance
 
@@ -234,27 +231,126 @@ At first step, I used standard track1 data, which is provided by UdaCity Course 
 
 I have designed several keras neural network models for testing capavilities to minimize mean squared error.
 First of all, I have tested model without dropout, which ignore any overfitting the trained data. 
-Though there are lack of logical methodology to avoid overfitting and underfitting baised data, this pure normal model works well to show minimum loss result from training process. Personally, I think that its good expectation comes from image preprocessing of flipping center image and having focus area from center, left and right camera views. 
+Though there are lack of logical methodology to avoid overfitting and underfitting baised data, this pure normal model works well to show minimum loss result from training process. Personally, I think that its good expectation comes from image preprocessing of flipping center image and having focus area from center, left and right camera views, in addition to rectifier function so-called ReLu. 
 This model solution apply to track1 and track2 cource. 
 
+
+```
+ReLu: The rectifier function is an activation function f(x) = Max(0, x) which can be used by neurons just like any other activation function, a node using the rectifier activation function is called a ReLu node. The main reason that it is used is because of how efficiently it can be computed compared to more conventional activation functions like the sigmoid and hyperbolic tangent, without making a significant difference to generalisation accuracy. The rectifier activation function is used instead of a linear activation function to add non linearity to the network, otherwise the network would only ever be able to compute a linear function.
+```
+
+**About Dropout**
+In some of cases, Dropout is set after convolutional layer as one of regularization technique, which main purpose forces a neural network to learn more robust features that are useful in conjunction with many different random subsets of the other neurons. However it offends to keep minimize loss number over the training process. However, the model performance is worse than baseline performance.
+The reason why I guess is that the network is small relative to training dataset, so that regularization does not work well to implement performance, and finally hurt overall model performance. Dropout will be utilized for heavy network architecture, and need more number of epochs to train data set.  
 
 Epochs=25
 Drop off small angle data (< 0.1) = NO
 Final MSE = 0.008
 
 
+**About elu performance (reference)**
+```
+2018-03-05 22:44:57.504667: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce GTX 1080 Ti, pci bus id: 0000:02:00.0)
+215/215 [==============================] - 74s - loss: 0.0776 - val_loss: 0.0395
+Epoch 2/25
+215/215 [==============================] - 77s - loss: 0.0335 - val_loss: 0.0350
+Epoch 3/25
+215/215 [==============================] - 79s - loss: 0.0302 - val_loss: 0.0330
+Epoch 4/25
+215/215 [==============================] - 78s - loss: 0.0284 - val_loss: 0.0335
+Epoch 5/25
+215/215 [==============================] - 78s - loss: 0.0277 - val_loss: 0.0317
+Epoch 6/25
+215/215 [==============================] - 80s - loss: 0.0254 - val_loss: 0.0317
+Epoch 7/25
+215/215 [==============================] - 78s - loss: 0.0246 - val_loss: 0.0340
+Epoch 8/25
+215/215 [==============================] - 81s - loss: 0.0238 - val_loss: 0.0338
+Epoch 9/25
+215/215 [==============================] - 80s - loss: 0.0233 - val_loss: 0.0310
+Epoch 10/25
+215/215 [==============================] - 79s - loss: 0.0224 - val_loss: 0.0333
+Epoch 11/25
+215/215 [==============================] - 81s - loss: 0.0218 - val_loss: 0.0313
+Epoch 12/25
+215/215 [==============================] - 81s - loss: 0.0211 - val_loss: 0.0306
+Epoch 13/25
+215/215 [==============================] - 82s - loss: 0.0204 - val_loss: 0.0346
+Epoch 14/25
+215/215 [==============================] - 79s - loss: 0.0201 - val_loss: 0.0331
+Epoch 15/25
+215/215 [==============================] - 80s - loss: 0.0197 - val_loss: 0.0311
+Epoch 16/25
+215/215 [==============================] - 80s - loss: 0.0188 - val_loss: 0.0293
+Epoch 17/25
+215/215 [==============================] - 79s - loss: 0.0185 - val_loss: 0.0305
+Epoch 18/25
+215/215 [==============================] - 81s - loss: 0.0181 - val_loss: 0.0318
+Epoch 19/25
+215/215 [==============================] - 80s - loss: 0.0177 - val_loss: 0.0286
+Epoch 20/25
+215/215 [==============================] - 80s - loss: 0.0177 - val_loss: 0.0291
+Epoch 21/25
+215/215 [==============================] - 82s - loss: 0.0167 - val_loss: 0.0291
+Epoch 22/25
+215/215 [==============================] - 80s - loss: 0.0162 - val_loss: 0.0291
+Epoch 23/25
+215/215 [==============================] - 81s - loss: 0.0162 - val_loss: 0.0284
+Epoch 24/25
+215/215 [==============================] - 81s - loss: 0.0159 - val_loss: 0.0292
+Epoch 25/25
+215/215 [==============================] - 79s - loss: 0.0157 - val_loss: 0.0296
+dict_keys(['val_loss', 'loss'])
+```
+
 
 #### 2. Final Model Architecture
 
-The final model architecture (model.py lines 18-24) consisted of a convolution neural network with the following layers and layer sizes ...
+As described in earlier step, the following architecture is what I finally desgined
 
-Here is a visualization of the architecture (note: visualizing the architecture is optional according to the project rubric)
 
-![alt text][image1]
+
+![alt text][nvidia]
+
+>Summary layout from keras module.
+
+```_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lambda_1 (Lambda)            (None, 160, 320, 3)       0         
+_________________________________________________________________
+cropping2d_1 (Cropping2D)    (None, 90, 320, 3)        0         
+_________________________________________________________________
+conv1 (Conv2D)               (None, 43, 158, 24)       1824      
+_________________________________________________________________
+conv2 (Conv2D)               (None, 20, 77, 36)        21636     
+_________________________________________________________________
+conv3 (Conv2D)               (None, 8, 37, 48)         43248     
+_________________________________________________________________
+conv4 (Conv2D)               (None, 6, 35, 64)         27712     
+_________________________________________________________________
+conv5 (Conv2D)               (None, 4, 33, 64)         36928     
+_________________________________________________________________
+flatten_1 (Flatten)          (None, 8448)              0         
+_________________________________________________________________
+dense_1 (Dense)              (None, 100)               844900    
+_________________________________________________________________
+dense_2 (Dense)              (None, 50)                5050      
+_________________________________________________________________
+dense_3 (Dense)              (None, 10)                510       
+_________________________________________________________________
+dense_4 (Dense)              (None, 1)                 11        
+=================================================================
+Total params: 981,819
+Trainable params: 981,819
+Non-trainable params: 0
+
+```
 
 #### 3. Creation of the Training Set & Training Process
 
-To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
+
+
 
 ![alt text][image2]
 

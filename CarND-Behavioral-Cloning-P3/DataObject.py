@@ -23,7 +23,7 @@ class DataObjectClass():
 
         return X_train, X_test, y_train, y_test
         
-    def loadCSVData(self, baseDir="data", filename="driving_log.csv", sample = True, remove_straight_angle=None):
+    def loadCSVData(self, baseDir="data", filename="driving_log.csv", sample = True, straight_angle=None):
 
         # load 3 angle camera view from flat file
         
@@ -58,9 +58,9 @@ class DataObjectClass():
         Steering_left  = np.array( list( map(lambda steer:(steer + offset), Steering_center.copy() ) )  )  
         Steering_right = np.array( list( map(lambda steer:(steer - offset), Steering_center.copy() ) ) )  
 
-        if remove_straight_angle is not None:
+        if straight_angle is not None:
             print("Exclude straight line images and angles from training / validation data..")
-            print("Omit Angle less than %.2f" % remove_straight_angle )
+            print("Omit Angle less than %.2f" % straight_angle )
 
         print("-"* 40)
         print("    total length of images / angles   ")
@@ -73,9 +73,9 @@ class DataObjectClass():
         #
         # make mask for greater than angle parameter
         #
-        mask_center = Steering_center > remove_straight_angle
-        mask_left = Steering_left > remove_straight_angle
-        mask_right = Steering_right > remove_straight_angle
+        mask_center = Steering_center > straight_angle
+        mask_left = Steering_left > straight_angle
+        mask_right = Steering_right > straight_angle
 
         print("original large center angle counts..", np.sum(mask_center))
         print("original large left angle counts..", np.sum(mask_left)   )

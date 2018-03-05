@@ -10,9 +10,9 @@ class ParametersClass(object):
         #parse arguments
         parser = argparse.ArgumentParser()
         parser.add_argument('--epochs', default=10, type=int)
-        parser.add_argument('--remove_straight_angle', default=None, type=float, help="Remove all training data with steering angle less than this. Useful for getting rid of straight bias")
-        parser.add_argument('--save_generated_images', action='store_true', help="Location to save generated images to")
-        parser.add_argument('--load_model', type=str, help="For transfer learning, here's the model to start with")
+        parser.add_argument('--straight_angle', default=None, type=float, help="Remove all training data with steering angle less than this. Useful for getting rid of straight bias")
+        #parser.add_argument('--save_generated_images', action='store_true', help="Location to save generated images to")
+        #parser.add_argument('--load_model', type=str, help="For transfer learning, here's the model to start with")
         parser.add_argument('--directory', type=str, default=None, help="Directory for training data")
         parser.add_argument('--learning_rate', type=float, default=.001)
         #parser.add_argument('--header', type=bool, default=True)
@@ -28,7 +28,7 @@ class ParametersClass(object):
     def checkParams(self):
 
         params = self.args
-        if params.remove_straight_angle is None:
+        if params.straight_angle is None:
             print("-"* 30)
             print("ERROR from straight line angle parameter")
             print("-"* 30)

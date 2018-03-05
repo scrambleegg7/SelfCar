@@ -31,7 +31,7 @@ from Parameter import ParametersClass
 from DataObject import DataObjectClass
 from ImageObject import ImageDataObjectClass
 
-def generator(X, y, baseDir, batch_size=32, remove_straight_angle=None):
+def generator(X, y, baseDir, batch_size=32, straight_angle=None):
 
     num_samples = X.shape[0]
     cwd = os.path.join(os.getcwd(),baseDir)
@@ -46,7 +46,7 @@ def generator(X, y, baseDir, batch_size=32, remove_straight_angle=None):
         #
         X, y = shuffle(X, y)
 
-        imageDataObject = ImageDataObjectClass(X,y,cwd, remove_straight_angle)
+        imageDataObject = ImageDataObjectClass(X,y,cwd, straight_angle)
 
         for offset in range(0, num_samples, batch_size):
 
@@ -73,7 +73,7 @@ def main():
     print("-"*30)
  
     myData = DataObjectClass()
-    myData.loadCSVData(baseDir, filename, sample = params.header, remove_straight_angle=params.remove_straight_angle)
+    myData.loadCSVData(baseDir, filename, sample = params.header, straight_angle=params.straight_angle)
     X_train, X_test, y_train, y_test = myData.shuffleSplit(test_size=0.15)
     
     print(" Train / Test splitted size --> ", X_train.shape, X_test.shape, y_train.shape, y_test.shape)
@@ -81,8 +81,8 @@ def main():
     nVidia = nVidiaModelClass()
     model = nVidia.buildModel()
 
-    train_generator = generator(X_train, y_train, baseDir, batch_size=BATCH_SIZE)    #, remove_straight_angle=params.remove_straight_angle)
-    validation_generator = generator(X_test, y_test, baseDir, batch_size=BATCH_SIZE) #, remove_straight_angle=params.remove_straight_angle)
+    train_generator = generator(X_train, y_train, baseDir, batch_size=BATCH_SIZE)    #, straight_angle=params.straight_angle)
+    validation_generator = generator(X_test, y_test, baseDir, batch_size=BATCH_SIZE) #, straight_angle=params.straight_angle)
 
     #optimizer = Nadam(lr=learning_rate)
     optimizer = Adam(lr=params.learning_rate)

@@ -30,7 +30,19 @@ class nVidiaModelClass():
         # cropping image size 50px from top ~ 20 px from bottom 
         model.add(Cropping2D(cropping=((50,20), (0,0))))
         return model
-    
+
+    def createNormalizedLayers(self):
+        """
+        Creates a model with the initial pre-processing layers.
+        """
+        # image is shrinked size image 66 x 200 x 3 YCrCb image
+        model = Sequential()
+        model.add(Lambda(lambda x: (x / 127.5) - 1., input_shape=(66,200,3)))
+
+        # cropping image size 50px from top ~ 20 px from bottom 
+        #model.add(Cropping2D(cropping=((50,20), (0,0))))
+        return model
+
     def buildModel(self):
         """
         Creates nVidea Autonomous Car Group model
@@ -64,42 +76,25 @@ class nVidiaModelClass():
         Creates nVidea Autonomous Car Group model
         """
         model = self.createPreProcessingLayers()
-
         if self.kversion == "1.2.1":        
             #
             # suppress kera v.2 warning message Conv2d should be used.
             #
-            model.add(Convolution2D(24,5,5, subsample=(2,2), activation='relu'))
-            model.add(Dropout(0.1))
-            model.add(Convolution2D(36,5,5, subsample=(2,2), activation='relu'))
-            model.add(Dropout(0.1))
-            model.add(Convolution2D(48,5,5, subsample=(2,2), activation='relu'))
-            model.add(Dropout(0.2))
-            model.add(Convolution2D(64,3,3, activation='relu'))
-            model.add(Dropout(0.2))
-            model.add(Convolution2D(64,3,3, activation='relu'))
-            model.add(Dropout(0.2))
+            model.add(Convolution2D(24,5,5, subsample=(2,2), activation='elu'))
+            model.add(Convolution2D(36,5,5, subsample=(2,2), activation='elu'))
+            model.add(Convolution2D(48,5,5, subsample=(2,2), activation='elu'))
+            model.add(Convolution2D(64,3,3, activation='elu'))
+            model.add(Convolution2D(64,3,3, activation='elu'))
         else:
             model.add(Conv2D(24,(5,5), strides=(2,2), activation='elu',name="conv1"))
-            model.add(Dropout(0.5))
             model.add(Conv2D(36,(5,5), strides=(2,2), activation='elu',name="conv2"))
-            model.add(Dropout(0.5))
             model.add(Conv2D(48,(5,5), strides=(2,2), activation='elu',name="conv3"))
-            model.add(Dropout(0.5))
             model.add(Conv2D(64,(3,3), activation='elu',name="conv4"))
-            model.add(Dropout(0.5))
             model.add(Conv2D(64,(3,3), activation='elu',name="conv5"))
-            model.add(Dropout(0.5))
-            model.add(Conv2D(128,(3,3), activation='elu',name="conv6"))
-            model.add(Dropout(0.5))
         model.add(Flatten())
-        #model.add(Dropout(0.5))
         model.add(Dense(100))
-        #model.add(Dropout(0.5))
         model.add(Dense(50))
-        #model.add(Dropout(0.5))
         model.add(Dense(10))
-        #model.add(Dropout(0.5))
         model.add(Dense(1))
         return model   
 
