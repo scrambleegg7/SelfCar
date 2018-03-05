@@ -70,10 +70,15 @@ class nVidiaModelClass():
             # suppress kera v.2 warning message Conv2d should be used.
             #
             model.add(Convolution2D(24,5,5, subsample=(2,2), activation='relu'))
+            model.add(Dropout(0.1))
             model.add(Convolution2D(36,5,5, subsample=(2,2), activation='relu'))
+            model.add(Dropout(0.1))
             model.add(Convolution2D(48,5,5, subsample=(2,2), activation='relu'))
+            model.add(Dropout(0.2))
             model.add(Convolution2D(64,3,3, activation='relu'))
+            model.add(Dropout(0.2))
             model.add(Convolution2D(64,3,3, activation='relu'))
+            model.add(Dropout(0.2))
         else:
             model.add(Conv2D(24,(5,5), strides=(2,2), activation='elu',name="conv1"))
             model.add(Dropout(0.5))
@@ -88,13 +93,13 @@ class nVidiaModelClass():
             model.add(Conv2D(128,(3,3), activation='elu',name="conv6"))
             model.add(Dropout(0.5))
         model.add(Flatten())
-        model.add(Dropout(0.5))
+        #model.add(Dropout(0.5))
         model.add(Dense(100))
-        model.add(Dropout(0.5))
+        #model.add(Dropout(0.5))
         model.add(Dense(50))
-        model.add(Dropout(0.5))
+        #model.add(Dropout(0.5))
         model.add(Dense(10))
-        model.add(Dropout(0.5))
+        #model.add(Dropout(0.5))
         model.add(Dense(1))
         return model   
 
@@ -157,3 +162,11 @@ class nVidiaModelClass():
             model.add(Dense(1,activation='linear', kernel_initializer='he_uniform', kernel_regularizer=l2(0.01) ))
 
         return model   
+
+
+def main():
+    nVidia = nVidiaModelClass()
+    model = nVidia.buildModel()
+    model.summary()
+if __name__ == "__main__":
+    main()    
