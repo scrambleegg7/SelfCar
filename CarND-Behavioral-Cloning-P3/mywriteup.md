@@ -28,6 +28,22 @@ Keras 2 under tensorflow 1.4
 [//]: # (Image References)
 
 [nvidia]: ./convmodel/nVidiaNet.png "Model Visualization"
+[track1_center]: ./data/IMG/center_2016_12_01_13_30_48_287.jpg "track1 center"
+[track1_left]: ./data/IMG/left_2016_12_01_13_30_48_287.jpg "track1 center"
+[track1_right]: ./data/IMG/right_2016_12_01_13_30_48_287.jpg "track1 center"
+
+[track2osx_center]: ./data_tr2/IMG/center_2018_03_04_06_20_44_422.jpg "track1 center"
+[track2osx_left]: ./data_tr2/IMG/left_2018_03_04_06_20_44_422.jpg "track1 center"
+[track2osx_right]: ./data_tr2/IMG/right_2018_03_04_06_20_44_422.jpg "track1 center"
+
+[track2linx_center]: ./data_combined/IMG/center_2018_03_04_21_42_07_453.jpg "track1 center"
+[track2linx_left]: ./data_combined/IMG/left_2018_03_04_21_42_07_453.jpg "track1 center"
+[track2linx_right]: ./data_combined/IMG/right_2018_03_04_21_42_07_453.jpg "track1 center"
+
+[loss_tr1]: ./convmodel/loss_figure_tr1_20180304.png "loss tr1"
+[loss_tr2]: ./convmodel/loss_figure_tr2_20180304.png "loss tr2"
+[loss_comb]: ./convmodel/loss_figure_combination_20180304.png "loss tr2"
+
 
 ## Rubric Points
 ### Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
@@ -240,7 +256,7 @@ ReLu: The rectifier function is an activation function f(x) = Max(0, x) which ca
 ```
 
 **About Dropout**
-In some of cases, Dropout is set after convolutional layer as one of regularization technique, which main purpose forces a neural network to learn more robust features that are useful in conjunction with many different random subsets of the other neurons. However it offends to keep minimize loss number over the training process. However, the model performance is worse than baseline performance.
+In some of neural network models, Dropout is highly recommended to set after convolutional layer as one of regularization technique, which main purpose forces a neural network to learn more robust features that are useful in conjunction with many different random subsets of the other neurons. However it offends to keep minimize training / validation loss over the full training process. Thus it leads to that the model performance is worse than baseline performance.
 The reason why I guess is that the network is small relative to training dataset, so that regularization does not work well to implement performance, and finally hurt overall model performance. Dropout will be utilized for heavy network architecture, and need more number of epochs to train data set.  
 
 Epochs=25
@@ -349,29 +365,78 @@ Non-trainable params: 0
 
 #### 3. Creation of the Training Set & Training Process
 
+Besides the standard set of image data for track1 provided by UdaCity, I recorded following data.
+
+##### a. Track1 
+* __*How to make data*__
+Track1 is a counter-clock wised road, where the virtual car is running in the loop course, there is not any special start point and end point.
+Thus I took to record 3 laps of counter-wised round road and 1 lap of clock wise round road. Since standard set of images have lots of left biased, then I made the virtual car run on counter clocked round road to offset one-sided bias.
+
+
+* __Image data__
+>left image
+![left image][track1_left] 
+center image
+![alt text][track1_center]
+right image
+![alt text][track1_right]
+
+
+##### b. Track2 OSX version
+* __*How to make data*__
+Track2 OSX is a mountain view road which has lots of uphill and downhill terrain along with tight hairpin curves. There is unlikely to give one sided bias angles on driving car, thus I used to drive car on 2 laps of counter-wised round road.
+
+* __Image data__
+>left image
+![left image][track2osx_left] 
+center image
+![alt text][track2osx_center]
+right image
+![alt text][track2osx_right]
+
+
+##### c. Track2 Linux version
+* __*How to make data*__
+Opening track2 on linux platform, we can see another type of mountain view road cource, where people hardly imagine next points beyond tight corners and the top of hill. The road course also has a variety of steepness terrain that is hard to drive car even by human driving skill. Also, the cource has special features, one of which is the center line deviding left lane and right lane separately. Ultimately it is ideal to drive the car in either side, eg. left or right side, however I have choiced to use centerline where car is driving along with.
+
+* __Image data__
+>left image
+![left image][track2linx_left] 
+center image
+![alt text][track2linx_center]
+right image
+![alt text][track2linx_right]
 
 
 
-![alt text][image2]
+##### Angle Ajustments
+Data points collected with the Drive simulator has only single steering angle, even though there are 3 different types of camera views. Therefore, manual adjutments for car steering angle have to get it done to accept proper angle data into neural network. As a result to run in my experimental trials, I have choosened follwing offset parameters.
 
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
-
-![alt text][image3]
-![alt text][image4]
-![alt text][image5]
-
-Then I repeated this process on track two in order to get more data points.
-
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
-
-![alt text][image6]
-![alt text][image7]
-
-Etc ....
-
-After the collection process, I had X number of data points. I then preprocessed this data by ...
+| SIDE Camera         		|     Offset value	        	| 
+|:---------------------:|:---------------------------------------------:| 
+| **Left**          | +0.21    		| 
+| **Right**          | -0.21    		| 
 
 
-I finally randomly shuffled the data set and put Y% of the data into a validation set. 
+##### Image Augmentation
 
-I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was Z as evidenced by ... I used an adam optimizer so that manually training the learning rate wasn't necessary.
+
+##### Traing #####
+
+Those 3 types of driving scenes are put in the consolidated directory to learn every available correct driving angle, which is right choice of steering the handle for driving the virtual car. 
+
+* __Split Train / Validation__
+For the purposes of deminishing bias variant issues, I have splitted training data and validation data, which ratio 85% training and 15% validation for each scenario cases. Before starting to make batch process (batch generator), those splitted data are randomly shuffled.
+
+* __Loss curve__
+As described in earlier section, my training strategy is that the training has been done with 25 epochs and 0.001 learning rate for Adam Optimizer. As a result of this, I have finally obtained 
+
+
+>Trainig / Validation Loss figure
+__Track1__
+![alt text][loss_tr1]
+__Track2 Linux__
+![alt text][loss_tr2]
+__Combination Track__
+![alt text][loss_comb]
+
