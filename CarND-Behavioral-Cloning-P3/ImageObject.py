@@ -34,6 +34,44 @@ class ImageDataObjectClass():
         img = resize(image, (66, 200), mode='reflect')
         return img 
 
+    def batch_next_random(self,BATCH_SIZE=32):
+
+        image_samples = self.X        
+        angle_samples = self.y
+
+        images = []
+        angles = []        
+        is_flip = False
+        for idx, ( image_sample, angle_sample ) in enumerate( zip( image_samples, angle_samples )  ):
+            
+            actual_filename = image_sample.split("/")[-1]
+            name = os.path.join( self.cwd, actual_filename )
+            
+            if "center" in actual_filename: #  or "right" in actual_filename:
+                is_flip = True
+            else:
+                is_flip = False
+
+            drive_image = self.readImage(name)
+            # read process and data augmentation 
+            # size changed to 66 x 200 x 3
+            #drive_image = self.readImageAndPreProcess(name)
+            if np.random.random() < 0.5 and is_flip:
+                #drive_image = cv2.flip(drive_image, 1)
+                drive_image = np.fliplr(drive_image)
+
+                angle_sample *= -1.
+
+            images.append(drive_image)
+            angles.append(angle_sample)
+        
+            #
+            # flip image with 50% chance
+            #
+
+        return shuffle( np.array( images ), np.array( angles ) )
+
+
     def batch_next(self,offset,BATCH_SIZE=32):
 
         image_samples = self.X[ offset:offset+BATCH_SIZE ]        

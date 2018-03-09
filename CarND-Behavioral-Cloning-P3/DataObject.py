@@ -22,6 +22,48 @@ class DataObjectClass():
         X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=test_size)
 
         return X_train, X_test, y_train, y_test
+
+    def loadCSVFullData(self, baseDir="data", filename="driving_log.csv", sample = True, straight_angle=None):
+
+        # load 3 angle camera view from flat file
+        
+        # center
+        # left 
+        # right 
+        #
+        # setup directory
+        #
+        #
+        if sample:
+            cwd = os.path.join( os.getcwd(), baseDir )
+            driving_log = os.path.join(cwd, filename)
+            df_drive = pd.read_csv(driving_log)
+        else:
+            driving_log = os.path.join(baseDir,filename)
+            df_drive = pd.read_csv(driving_log,header=None,names=["center","left","right","steering","throttle","brake","speed"])
+
+        # read csv file to save drive data
+        centerImages = np.array( df_drive["center"].tolist() ) #[:,np.newaxis]
+        leftImages = np.array( df_drive["left"].tolist() )     #[:,np.newaxis]
+        rightImages = np.array( df_drive["right"].tolist() )   #[:,np.newaxis]
+
+        #
+        #  Mar. 03 2018 changed 0.275 to 0.25
+        #               min max function used for left and right angle)
+        #offset = 0.25
+        offset = 0.21
+        #   left_angle = min(1.0, center_angle + 0.25)
+
+        Steering_center = np.array( df_drive["steering"].tolist() )    
+        Steering_left  = np.array( list( map(lambda steer:(steer + offset), Steering_center.copy() ) )  )  
+        Steering_right = np.array( list( map(lambda steer:(steer - offset), Steering_center.copy() ) ) )  
+
+        print("Full Images - center:%s  left:%s  right:%s " % (centerImages.shape, leftImages.shape, rightImages.shape  )   )
+        print("Full Angles - center:%s  left:%s  right:%s " % (Steering_center.shape, Steering_left.shape, Steering_right.shape  )   )
+        
+        self.images = np.concatenate( [centerImages,leftImages,rightImages ], axis=0  )
+        self.steerings = np.concatenate([Steering_center,Steering_left, Steering_right ],axis=0)
+
         
     def loadCSVData(self, baseDir="data", filename="driving_log.csv", sample = True, straight_angle=None):
 
