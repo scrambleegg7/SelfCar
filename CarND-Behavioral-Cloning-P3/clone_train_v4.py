@@ -40,11 +40,39 @@ def generator(X, y, baseDir, batch_size=32, straight_angle=None):
 
     while 1: # Loop forever so the generator never terminates
         
+        #
+        #    shuffle(samples)
+        #
+        X, y = shuffle(X, y)
+        ridx = np.random.permutation(num_samples)
+
+        imageDataObject = ImageDataObjectClass(X,y,cwd, straight_angle)
+
+        for offset in range(0, num_samples, batch_size):
+
+            offset_ridx = ridx[offset:offset+batch_size]
+            #print("ridx",offset_ridx)
+            X_train, y_train = imageDataObject.batch_next_random(offset_ridx)
+
+            yield X_train, y_train
+
+def generator2(X, y, baseDir, batch_size=32, straight_angle=None):
+
+    num_samples = X.shape[0]
+    cwd = os.path.join(os.getcwd(),baseDir)
+    cwd = os.path.join(cwd,"IMG")
+
+
+    while 1: # Loop forever so the generator never terminates
+        
 
         #
         #    shuffle(samples)
         #
         X, y = shuffle(X, y)
+        lengthOfData = X.shape[0]
+        ridx = np.random.permutation(lengthOfData)
+        
 
         imageDataObject = ImageDataObjectClass(X,y,cwd, straight_angle)
 
@@ -61,7 +89,7 @@ def root_mean_squared_error(y_true, y_pred):
 
 def main():
 
-    BATCH_SIZE = 32
+    BATCH_SIZE = 64
     #(after you are done with the model)
     #K.clear_session()
     paramCls = ParametersClass()
@@ -78,13 +106,14 @@ def main():
     print("-"*30)
  
     myData = DataObjectClass()
-    myData.loadCSVData(baseDir, filename, sample = params.header, straight_angle=params.straight_angle)
+    myData.loadCSVFullData(baseDir, filename, sample = params.header, straight_angle=params.straight_angle)
     X_train, X_test, y_train, y_test = myData.shuffleSplit(test_size=0.15)
     
     print(" Train / Test splitted size --> ", X_train.shape, X_test.shape, y_train.shape, y_test.shape)
 
     nVidia = nVidiaModelClass()
-    model = nVidia.buildModel_drop()
+    model = nVidia.buildModel_Normal()
+    model.summary()
 
     train_generator = generator(X_train, y_train, baseDir, batch_size=BATCH_SIZE)    #, straight_angle=params.straight_angle)
     validation_generator = generator(X_test, y_test, baseDir, batch_size=BATCH_SIZE) #, straight_angle=params.straight_angle)

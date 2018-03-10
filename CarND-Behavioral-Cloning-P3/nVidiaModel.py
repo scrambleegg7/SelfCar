@@ -7,6 +7,7 @@ from keras.layers import Flatten, Dense, Lambda, Convolution2D, Cropping2D, Conv
 from keras.layers import Dropout, Activation
 from keras.regularizers import l2 # activity_l2
 from keras.layers.pooling import MaxPooling2D
+from keras.layers.normalization import BatchNormalization
 
 from keras.optimizers import SGD, Adam, Nadam
 
@@ -80,11 +81,21 @@ class nVidiaModelClass():
             #
             # suppress kera v.2 warning message Conv2d should be used.
             #
-            model.add(Convolution2D(24,5,5, subsample=(2,2), activation='elu'))
-            model.add(Convolution2D(36,5,5, subsample=(2,2), activation='elu'))
-            model.add(Convolution2D(48,5,5, subsample=(2,2), activation='elu'))
-            model.add(Convolution2D(64,3,3, activation='elu'))
-            model.add(Convolution2D(64,3,3, activation='elu'))
+            model.add(Convolution2D(24,5,5, subsample=(2,2), activation='relu'))
+            model.add( BatchNormalization() )
+            model.add(Dropout(0.1))  # keep_prob 0.9
+            model.add(Convolution2D(36,5,5, subsample=(2,2), activation='relu'))
+            model.add( BatchNormalization() )
+            model.add(Dropout(0.1))  # keep_prob 0.9
+            model.add(Convolution2D(48,5,5, subsample=(2,2), activation='relu'))
+            model.add( BatchNormalization() )
+            model.add(Dropout(0.3))  # keep_prob 0.9
+            model.add(Convolution2D(64,3,3, activation='relu'))
+            model.add( BatchNormalization() )
+            model.add(Dropout(0.5))  # keep_prob 0.9
+            model.add(Convolution2D(64,3,3, activation='relu'))
+            model.add( BatchNormalization() )
+            model.add(Dropout(0.5))  # keep_prob 0.9
         else:
             model.add(Conv2D(24,(5,5), strides=(2,2), activation='elu',name="conv1"))
             model.add(Conv2D(36,(5,5), strides=(2,2), activation='elu',name="conv2"))

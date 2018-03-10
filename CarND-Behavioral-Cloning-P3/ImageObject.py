@@ -34,10 +34,11 @@ class ImageDataObjectClass():
         img = resize(image, (66, 200), mode='reflect')
         return img 
 
-    def batch_next_random(self,BATCH_SIZE=32):
+    def batch_next_random(self,offset_ridx):
 
-        image_samples = self.X        
-        angle_samples = self.y
+
+        image_samples = self.X[offset_ridx]        
+        angle_samples = self.y[offset_ridx]
 
         images = []
         angles = []        
