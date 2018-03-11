@@ -26,7 +26,8 @@ class nVidiaModelClass():
         Creates a model with the initial pre-processing layers.
         """
         model = Sequential()
-        model.add(Lambda(lambda x: (x / 127.5) - 1., input_shape=(160,320,3)))
+        #model.add(Lambda(lambda x: (x / 127.5) - 1., input_shape=(160,320,3)))
+        model.add(Lambda(lambda x: (x / 255.), input_shape=(160,320,3)))
 
         # cropping image size 50px from top ~ 20 px from bottom 
         model.add(Cropping2D(cropping=((50,20), (0,0))))
@@ -83,19 +84,19 @@ class nVidiaModelClass():
             #
             model.add(Convolution2D(24,5,5, subsample=(2,2), activation='relu'))
             model.add( BatchNormalization() )
-            model.add(Dropout(0.1))  # keep_prob 0.9
+            #model.add(Dropout(0.1))  # keep_prob 0.9
             model.add(Convolution2D(36,5,5, subsample=(2,2), activation='relu'))
             model.add( BatchNormalization() )
-            model.add(Dropout(0.1))  # keep_prob 0.9
+            #model.add(Dropout(0.1))  # keep_prob 0.9
             model.add(Convolution2D(48,5,5, subsample=(2,2), activation='relu'))
             model.add( BatchNormalization() )
-            model.add(Dropout(0.3))  # keep_prob 0.9
+            #model.add(Dropout(0.3))  # keep_prob 0.9
             model.add(Convolution2D(64,3,3, activation='relu'))
             model.add( BatchNormalization() )
-            model.add(Dropout(0.5))  # keep_prob 0.9
+            #model.add(Dropout(0.5))  # keep_prob 0.9
             model.add(Convolution2D(64,3,3, activation='relu'))
             model.add( BatchNormalization() )
-            model.add(Dropout(0.5))  # keep_prob 0.9
+            #model.add(Dropout(0.5))  # keep_prob 0.9
         else:
             model.add(Conv2D(24,(5,5), strides=(2,2), activation='elu',name="conv1"))
             model.add(Conv2D(36,(5,5), strides=(2,2), activation='elu',name="conv2"))
@@ -103,7 +104,9 @@ class nVidiaModelClass():
             model.add(Conv2D(64,(3,3), activation='elu',name="conv4"))
             model.add(Conv2D(64,(3,3), activation='elu',name="conv5"))
         model.add(Flatten())
+        model.add(Dropout(0.5))
         model.add(Dense(100))
+        model.add(Dropout(0.5))
         model.add(Dense(50))
         model.add(Dense(10))
         model.add(Dense(1))

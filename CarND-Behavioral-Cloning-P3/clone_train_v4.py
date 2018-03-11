@@ -133,7 +133,7 @@ def main():
         valid_steps = X_test.shape[0] // BATCH_SIZE 
         history_object = model.fit_generator(train_generator, steps_per_epoch=steps_per_epch , \
             validation_data=validation_generator,  \
-            validation_steps= valid_steps  , epochs=params.epochs, verbose=1)
+            validation_steps= valid_steps  , epochs=params.epochs, verbose=2)
 
 
     print(history_object.history.keys())
