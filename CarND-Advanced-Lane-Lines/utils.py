@@ -90,7 +90,7 @@ def threshColoredImageBin(image):
 #
 # absolute soble thresh binary filtering image
 #
-def abs_sobel_thresh(img, orient='x', thresh_min=0, thresh_max=255):
+def abs_sobel_thresh(img, orient='x', thresh_min=0, thresh_max=255, kernel_size=3):
 
     if orient == 'x':
         yorder = 0
@@ -103,7 +103,7 @@ def abs_sobel_thresh(img, orient='x', thresh_min=0, thresh_max=255):
     # 1) Convert to grayscale (RGB -> GRAY)
     gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     # 2) Take the derivative in x or y given orient = 'x' or 'y'
-    sobelx = cv2.Sobel(gray, cv2.CV_64F, xorder, yorder)
+    sobelx = cv2.Sobel(gray, cv2.CV_64F, xorder, yorder, ksize = kernel_size)
     # 3) Take the absolute value of the derivative or gradient
     sobel = np.absolute(sobelx)
     # 4) Scale to 8-bit (0 - 255) then convert to type = np.uint8
@@ -279,3 +279,48 @@ def pipelineBinaryImage2(image, s_thresh=(170, 255), sx_thresh=(20, 100)):
     #
     return color_binary, combined_binary
     
+
+def showImageList(img_list, img_labels, title, cols=2, fig_size=(26, 22) ): #, show_ticks=True):
+    """
+    Utility function to to show a list of images
+    """
+    rows = len(img_list)
+    cmap = None
+
+    gs1 = gridspec.GridSpec(rows, cols)
+    gs1.update(wspace=0.01, hspace=0.02) # set the spacing between axes.
+    plt.figure(figsize=fig_size)
+    plt.suptitle(title, fontsize=24, fontweight="bold")
+    
+    #fig, axes = plt.subplots(rows, cols, figsize=fig_size)
+
+
+    for i in range(0, rows):
+        for j in range(0, cols):
+            #ax = axes[i, j] if rows > 1 else axes[j]
+
+            k = i * cols + j
+            ax = plt.subplot(gs1[k])
+            ax.set_xticklabels([])
+            ax.set_yticklabels([])
+            ax.set_aspect('equal')
+            
+            plt.subplots(rows, cols, k+1)
+            
+            img_name = img_labels[i][j]
+            img = img_list[i][j]
+            if len(img.shape) < 3 or img.shape[-1] < 3:
+                cmap = "gray"
+                img = np.reshape(img, (img.shape[0], img.shape[1]))
+            
+            #if not show_ticks:
+            ax.axis("off")
+
+            ax.imshow(img, cmap=cmap)
+            ax.set_title(img_name)
+
+    #fig.suptitle(title, fontsize=12, fontweight='bold', y=1)
+    #fig.tight_layout()
+    plt.show()
+
+    return
