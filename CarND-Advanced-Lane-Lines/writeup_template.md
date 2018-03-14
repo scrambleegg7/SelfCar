@@ -63,7 +63,8 @@ I have applied cv2.calibrateCamera so that it simply outputs several siginifican
 
 4. **saveCalibParameters**
 I have kept mtx and dist parameters from cv2.calibrateCamera function. Those 2 important parameters are passed to further undistortion function of reading other standard photo images. 
-Mainly, those are used for my part2 section.  
+Therefore, I have saved **mtx** and **dist** parameters on pickle file. 
+The filename __calibration.p__ has been saved under ./picked_data directory.  
 
 ### It is successful to find the corners of the chessboards and then draw the line and corner points.
 ![alt text][drawchess]
@@ -74,25 +75,56 @@ Mainly, those are used for my part2 section.
 ### Those are undistortion images by cv2.undistort, after cameraClibration function using saved objpoints and imgpoints.
 ![alt text][undistortchess]
 
+---
+
 # Pipeline Image process for binary masking (Part2)
 
- 
-
-
-For the further usage other program codes will access, I have saved **mtx** and **dist** parameters on pickle file. 
-The filename __calibration.p__ has been saved under ./picked_data directory.  
-
-
-# Pipeline (single images)
+ This is written on `pipelineTestImage.ipynb` juyter notebook for the demonstration how I build transfered (threshhold) images from original road images.
 
 ## 1. Provide an example of a distortion-corrected image.
 
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
+With using cv2.undistort function and saved parameters **mtx** and **dist**, I have successfully transformed the undistortion image from original road images. It is confirmed that images are adjusted based on the camera calibration parameters, in special distortion images (eg. slightly curved lines) are clearly purged from original ones. For example, the back of white car is truncated from the right side of image window. 
+I have demonstrated original and adjusted images side by side on jupyter notebook.
+
+
 ![alt text][image2]
 
-#### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
+## 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+### 2.1 Split Channel RGB colored image
+At first step, I splitted out Red, Green, Blue channel from original one to find out which channel has strong features for the lane line. I have confirmed that Red and Green channel showed us good image contrasts to draw the line on separated Gray image. Blue was unfortunately poor result.
+
+### 2.2 Extract Yellow & White & HLS Yellow to make mixed mask image
+
+I have several color parameters to extract yellow and white color from original images. (`threshColoredImageBin submodule of utils.py`)
+Target colored lines are drawn accordingly on each binary image and then finally those are put together into one single binary image by switching on True condition of each filtering image.
+Overall, we have found that HLS Yellow line is better displayed from the bottom of the image window, which of length is much longer than simple Yellow line binary extraction.   
+
+```
+    # rgb Yellow colored mask
+    lower = np.array([255,180,0]).astype(np.uint8)
+    upper = np.array([255,255,170]).astype(np.uint8)
+
+    # rgb white colored mask
+    lower = np.array([100,100,200]).astype(np.uint8)
+    upper = np.array([255,255,255]).astype(np.uint8)
+
+    # HLS yellow fitltering
+    lower = np.array([20,120,80]).astype(np.uint8)
+    upper = np.array([45,200,255]).astype(np.uint8)
+    
+```
+### 2.3 Gradient Soble
+At 2nd step, I have applied Sobel Gradient technique against original images (undistortion). Following tables indicates what kinds of parameters I have tested.
+
+ | Parameter        | value   | 
+|:-------------:|:-------------:| 
+| direction     | x       | 
+| thresh_min      | 20       | 
+| thresh_max     | 100    | 
+| kernel size     | 3, 5, 15       | 
+
+After obtaining result from sobel gradient techiques, image having kernel size = 15 showed remarkable drawing contrast performance that we could easily identify thick lane line on the binary transformed images.
 
 ![alt text][image3]
 

@@ -85,7 +85,7 @@ def threshColoredImageBin(image):
     binary = np.zeros_like(y_binary)
     binary[ (y_binary == 1) | (w_binary == 1) | (y_hls_binary == 1) ] = 1
 
-    return binary
+    return (binary,y_binary,w_binary,y_hls_binary)
 
 #
 # absolute soble thresh binary filtering image
@@ -280,47 +280,3 @@ def pipelineBinaryImage2(image, s_thresh=(170, 255), sx_thresh=(20, 100)):
     return color_binary, combined_binary
     
 
-def showImageList(img_list, img_labels, title, cols=2, fig_size=(26, 22) ): #, show_ticks=True):
-    """
-    Utility function to to show a list of images
-    """
-    rows = len(img_list)
-    cmap = None
-
-    gs1 = gridspec.GridSpec(rows, cols)
-    gs1.update(wspace=0.01, hspace=0.02) # set the spacing between axes.
-    plt.figure(figsize=fig_size)
-    plt.suptitle(title, fontsize=24, fontweight="bold")
-    
-    #fig, axes = plt.subplots(rows, cols, figsize=fig_size)
-
-
-    for i in range(0, rows):
-        for j in range(0, cols):
-            #ax = axes[i, j] if rows > 1 else axes[j]
-
-            k = i * cols + j
-            ax = plt.subplot(gs1[k])
-            ax.set_xticklabels([])
-            ax.set_yticklabels([])
-            ax.set_aspect('equal')
-            
-            plt.subplots(rows, cols, k+1)
-            
-            img_name = img_labels[i][j]
-            img = img_list[i][j]
-            if len(img.shape) < 3 or img.shape[-1] < 3:
-                cmap = "gray"
-                img = np.reshape(img, (img.shape[0], img.shape[1]))
-            
-            #if not show_ticks:
-            ax.axis("off")
-
-            ax.imshow(img, cmap=cmap)
-            ax.set_title(img_name)
-
-    #fig.suptitle(title, fontsize=12, fontweight='bold', y=1)
-    #fig.tight_layout()
-    plt.show()
-
-    return
