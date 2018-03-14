@@ -114,7 +114,7 @@ Overall, we have found that HLS Yellow line is better displayed from the bottom 
     upper = np.array([45,200,255]).astype(np.uint8)
     
 ```
-### 2.3 Gradient Soble
+### 2.3 Sobel X / Y Direction
 At 2nd step, I have applied Sobel Gradient technique against original images (undistortion). Following tables indicates what kinds of parameters I have tested.
 
  | Parameter        | value   | 
@@ -124,7 +124,74 @@ At 2nd step, I have applied Sobel Gradient technique against original images (un
 | thresh_max     | 100    | 
 | kernel size     | 3, 5, 15       | 
 
-After obtaining result from sobel gradient techiques, image having kernel size = 15 showed remarkable drawing contrast performance that we could easily identify thick lane line on the binary transformed images.
+After obtaining result from sobel gradient techiques, image having kernel size = 15 has remarkable contrast that we could easily identify thick lane line on the binary transformed images.
+
+### 2.4 Magnitude Sobel
+Next I have applied Magnitude Sobel Technique, which has combination of Sobel X and Y direction Gradient image. Though we see kernel size = 15 is best performance to show the contrast, some lane lines are fully depicted on both test4 and test5 images. Because those 2 images have big color contrast on road surface, therefore it is hard to catch lane lines as continuous ones. 
+
+ | Parameter        | value   | 
+|:-------------:|:-------------:| 
+| direction     | x and y       | 
+| thresh_min      | 20       | 
+| thresh_max     | 150    | 
+| kernel size     | 3, 7, 15       | 
+
+### 2.5 Direction of Gradient 
+Finally I have tested Direction of Gradient Technique as single testing module. Following are 2 main parameters I have setup for testing purposes to see effect of filtering with different parameters. Clearly, we found thresh-2 parameter gave good contrast performance of filtering images, where we see lane lines are deciphered from snow-style background image.  
+
+
+| Parameter        | value   | 
+|:-------------:|:-------------:| 
+| thresh-1       |    (0, np.pi / 2)    | 
+| thresh-2    | (0.7, 1.3)    | 
+
+After obtaining result from sobel gradient techiques, image having kernel size = 15 has remarkable contrast that we could easily identify thick lane line on the binary transformed images.
+
+### 2.6 Combination of Sobel / Magnitude / Direction of Gradient  
+Then I have combined the above 4 techniques to make blend image showing lane line with the binary image. I have picked up best parameters for respective gradient techniques. I obtained good result overall from mixed images, however some of images like test4 and test5 has lost contrast on above half of image size, in a result to have incapability of drawing full length of lane lines.
+In order to grab more contrast for Yellow and White line on the road, I also applied HSL binary image filtering.
+One is to use full channels of HLS extracting Yellow and White line, another is to focus on just S channel having threshold parameters for Yellow and White line.
+
+**My final conclusion which is best criteria highlighting Yellow and White lane line:**
+S channel + Sobel Gradient Filtering is best combination to draw the lane line of the road with the binary image. 
+
+HLS Yellow 
+```
+    hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
+
+    # HLS yellow colored mask
+    lower = np.array([20,120,80]).astype(np.uint8)
+    upper = np.array([45,200,255]).astype(np.uint8)
+    mask = cv2.inRange(hls,lower,upper)
+    hls_y = cv2.bitwise_and(image, image, mask=mask)
+    hls_y = cv2.cvtColor(hls_y, cv2.COLOR_HLS2RGB)    
+    gray = cv2.cvtColor(hls_y, cv2.COLOR_RGB2GRAY)
+    y_hls_binary = threshold(gray, bin_thresh_min, bin_thresh_max)
+
+    # white colored mask
+    lower = np.array([0,200,0]).astype(np.uint8)
+    upper = np.array([255,255,255]).astype(np.uint8)
+    mask = cv2.inRange(hls,lower,upper)
+    hls_w = cv2.bitwise_and(image, image, mask=mask)
+    hls_w = cv2.cvtColor(hls_w, cv2.COLOR_HLS2RGB)    
+    gray = cv2.cvtColor(hls_w, cv2.COLOR_RGB2GRAY)
+    w_binary = threshold(gray, bin_thresh_min, bin_thresh_max)
+
+```
+
+```
+    # input is RGB (skimage.io.imread)
+    
+    hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+    S = hls[:,:,2]  # 2 <-- S channel     
+    
+    binary = np.zeros_like(S)
+    binary[(S > thresh[0]) & (S <= thresh[1])] = 1
+
+```
+
+Then regenerated 2types of images - Colored images (3 channels image, but channel0 is ZERO pad, and channel1 is sobel gradient combined image, and channel2 is HLS filtering image.) and binary images to extract sobel gradient combined and HLS filtering.
+
 
 ![alt text][image3]
 
@@ -144,6 +211,7 @@ dst = np.float32(
     [(img_size[0] * 3 / 4), img_size[1]],
     [(img_size[0] * 3 / 4), 0]])
 ```
+
 
 This resulted in the following source and destination points:
 
