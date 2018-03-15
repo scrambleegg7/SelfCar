@@ -278,6 +278,7 @@ Following source and destination points are used in `undistort_corners_warp`
 
 
 For the visual verification, I have generated comaprison image matrix for normal and warped images as follows;
+Straight lane lines and curved lane lines are confirmed to draw the paralell ones on respective images. 
 
 ![alt text][image4]
 
