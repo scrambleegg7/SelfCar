@@ -201,13 +201,13 @@ def hls_threshold(img, thresh=(0, 255)):
 def applyCombinedGradient(x):
     
     sobel_imagex = abs_sobel_thresh(x, orient='x', thresh_min=20, thresh_max=120, kernel_size=15)
-    sobel_imagey = abs_sobel_thresh(x, orient='y', thresh_min=20, thresh_max=120, kernel_size=15)
+    #sobel_imagey = abs_sobel_thresh(x, orient='y', thresh_min=20, thresh_max=120, kernel_size=15)
 
     mag_binary = mag_thresh(x, sobel_kernel=15, mag_thresh=(80, 200))
     dir_binary = dir_threshold(x, sobel_kernel=15, thresh=(np.pi/4, np.pi/2) )
     
     mybinary = np.zeros_like(dir_binary)
-    mybinary[ ((sobel_imagex == 1) & (sobel_imagey == 1)) | ( (mag_binary == 1) & (dir_binary == 1)      )      ] = 1
+    mybinary[ (sobel_imagex == 1)  | ( (mag_binary == 1) & (dir_binary == 1)      )      ] = 1
     #mybinary[(sobel_imagex == 1) | ((sobel_imagey == 1) & (mag_binary == 1) & (dir_binary == 1))] = 1
     return mybinary
 
@@ -252,11 +252,10 @@ def pipelineBinaryImage2(x):
     # binary image
     #
     return combined_binary
-
 #
 #  l channel of HLS applied to sobelx  
 #  S channel of HLS binary filtering. 
-def pipelineBinaryImage2(image, s_thresh=(170, 255), sx_thresh=(20, 100)):
+def pipelineBinaryImage3(image, s_thresh=(170, 255), sx_thresh=(20, 100)):
 
     hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
     s_image = hls[:,:,2]
@@ -273,6 +272,7 @@ def pipelineBinaryImage2(image, s_thresh=(170, 255), sx_thresh=(20, 100)):
     
     # Threshold color channel
     s_binary = np.zeros_like(s_image)
+    
     s_binary[(s_image >= s_thresh[0]) & (s_image <= s_thresh[1])] = 1
     # Stack each channel
     # Note color_binary[:, :, 0] is all 0s, effectively an all black image. It might
@@ -289,5 +289,106 @@ def pipelineBinaryImage2(image, s_thresh=(170, 255), sx_thresh=(20, 100)):
     # b. combined parameters. binary image
     #
     return color_binary, combined_binary
+
+def pipelineBinaryImage4(x): # , s_thresh=(170, 255), sx_thresh=(20, 100)):
+
+    hls = cv2.cvtColor(x, cv2.COLOR_RGB2HLS)
+    s_image = hls[:,:,2]
+    l_image = hls[:,:,1]
+
+    s_thresh=(170, 255)
+    sx_thresh=(20, 100)
+
+    # Threshold x gradient
+    sobelx = cv2.Sobel(l_image, cv2.CV_64F, 1, 0) # Take the derivative in x
+    abs_sobelx = np.absolute(sobelx) # Absolute x derivative to accentuate lines away from horizontal
+    scaled_sobelx = np.uint8(255*abs_sobelx/np.max(abs_sobelx))
+    sxbinary = threshold(scaled_sobelx,sx_thresh[0],sx_thresh[1])
+
+    # Threshold y gradient
+    sobely = cv2.Sobel(l_image, cv2.CV_64F, 0, 1) # Take the derivative in x
+    abs_sobely = np.absolute(sobely) # Absolute x derivative to accentuate lines away from horizontal
+    scaled_sobely = np.uint8(255*abs_sobely/np.max(abs_sobely))
+    sybinary = threshold(scaled_sobely,sx_thresh[0],sx_thresh[1])
+    
+    sxybinary = np.zeros_like(sobelx)
+    sxybinary[  (sxbinary == 1) | (sybinary == 1)  ] = 1
+
+    s_binary = np.zeros_like(s_image)    
+    s_binary[(s_image > s_thresh[0]) & (s_image <= s_thresh[1])] = 1
+    
+    # Stack each channel
+    # Note color_binary[:, :, 0] is all 0s, effectively an all black image. It might
+    # be beneficial to replace this channel with something else.
+    color_binary = np.dstack(( np.zeros_like(sxybinary), sxbinary, s_binary   )) * 255
+    
+    # Combine the two binary thresholds
+    combined_binary = np.zeros_like(sxbinary)
+    combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
+    
+    #
+    # result is 2 output parameters 
+    # a. colored binary = 3 channels 
+    # b. combined parameters. binary image
+    #
+    return color_binary, combined_binary
+
+
+
+def showImageList(images_list, images_label, cols=2, fig_size=(26, 22) ):
+
+    rows = len(images_list)
+    gs = gridspec.GridSpec(rows, cols)
+    gs.update(hspace=0.3,wspace=0.07)
+    fig1 = plt.figure(figsize=fig_size)
+    ax = []
+    cmap = None
+    for i in range( rows * cols):        
+        r = (i // cols)
+        c = i % cols
+
+        img = images_list[r][c]
+        lbl = images_label[r][c]
+        
+        if len(img.shape) < 3 or img.shape[-1] < 3:
+            cmap = "gray"
+            img = np.reshape(img, (img.shape[0], img.shape[1]))        
+        
+        ax.append(fig1.add_subplot(gs[r, c]))
+        ax[-1].set_title('%s' % str(lbl))
+        
+        ax[-1].imshow(img, aspect="auto", cmap=cmap)
+        #ax[-1].axis("off")
+    plt.show()
     
 
+def undistort_corners_unwarp(img, src, mtx, dist):
+
+    # images should be undistortion based on camera calibration.
+    # incoming image is RGB format --> skimage.io.imread
+    undist = cv2.undistort(img, mtx, dist, None, mtx)
+    
+    # Convert undistorted image to grayscale
+    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    img_size = (gray.shape[1], gray.shape[0])
+    
+    # Define 4 destination points
+    
+    # Mar. 10, 2018 
+    # dst is selected after a number of experimental trial to find
+    # what is best destination combination to show 
+    # straight line of the warped image
+    
+    # destination values are hardcoded as follows; 
+    dst = np.float32([[250, img.shape[0]], [250, 0], 
+                      [960, 0], [960, img.shape[0]]])
+    
+    # Given src and dst points, calculate the perspective transform matrix
+    M = cv2.getPerspectiveTransform(src, dst)
+    
+    Minv = cv2.getPerspectiveTransform(dst, src)
+    # Warp the image using OpenCV warpPerspective()
+    warped = cv2.warpPerspective(img, M, img_size)
+
+    # Return the resulting image and matrix
+    return warped, M, Minv

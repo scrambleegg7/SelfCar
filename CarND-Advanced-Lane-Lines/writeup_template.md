@@ -22,8 +22,18 @@ The goals / steps of this project we have to address are the following:
 
 [//]: # (Image References)
 [drawchess]: ./results_images/drawchess.jpeg "Grayscale"
-[undistortchess]: ./results_images/undistortchess.jpeg "Grayscale"
-[missingchess]: ./results_images/missingchess.jpeg "Grayscale"
+[undistortchess]: ./results_images/undistortchess.jpeg "undistort"
+[missingchess]: ./results_images/missingchess.jpeg "missing"
+[sobelx]: ./results_images/sobelx.jpeg "sobelx"
+[sobely]: ./results_images/sobely.jpeg "sobely"
+[rgb]: ./results_images/rgb.jpeg "rgb"
+[normal_undistort]: ./results_images/normal_undistort.jpeg "n"
+[mixed]: ./results_images/mixed.jpeg "ixed"
+[mag]: ./results_images/mag.jpeg "magnitude"
+[dir]: ./results_images/dir.jpeg "direction"
+[sobelcombine]: ./results_images/sobelcombine.jpeg "direction"
+[hls_color]: ./results_images/hls_color.jpeg "rgb"
+[hls_binary]: ./results_images/hls_binary.jpeg "rgb"
 
 ---
 
@@ -87,18 +97,23 @@ With using cv2.undistort function and saved parameters **mtx** and **dist**, I h
 I have demonstrated original and adjusted images side by side on jupyter notebook.
 
 
-![alt text][image2]
+![alt text][normal_undistort]
 
 ## 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
 ### 2.1 Split Channel RGB colored image
 At first step, I splitted out Red, Green, Blue channel from original one to find out which channel has strong features for the lane line. I have confirmed that Red and Green channel showed us good image contrasts to draw the line on separated Gray image. Blue was unfortunately poor result.
 
+![alt text][rgb]
+
+
 ### 2.2 Extract Yellow & White & HLS Yellow to make mixed mask image
 
-I have several color parameters to extract yellow and white color from original images. (`threshColoredImageBin submodule of utils.py`)
+I have set several color parameters to extract yellow and white color from original images. (`threshColoredImageBin submodule of utils.py`)
 Target colored lines are drawn accordingly on each binary image and then finally those are put together into one single binary image by switching on True condition of each filtering image.
-Overall, we have found that HLS Yellow line is better displayed from the bottom of the image window, which of length is much longer than simple Yellow line binary extraction.   
+Overall, we have found that HLS Yellow line is better displayed from the bottom of the image window, which of length is much longer than simple Yellow line binary extraction.  
+Finally, I have combined all of three binary images so that I would show the effectiveness of consolidated binary image.
+It is apparently 2 lane lines are drawn on the integrated binary image.   
 
 ```
     # rgb Yellow colored mask
@@ -114,17 +129,27 @@ Overall, we have found that HLS Yellow line is better displayed from the bottom 
     upper = np.array([45,200,255]).astype(np.uint8)
     
 ```
+![alt text][mixed]
+
 ### 2.3 Sobel X / Y Direction
 At 2nd step, I have applied Sobel Gradient technique against original images (undistortion). Following tables indicates what kinds of parameters I have tested.
 
  | Parameter        | value   | 
 |:-------------:|:-------------:| 
-| direction     | x       | 
+| direction     | x  & y      | 
 | thresh_min      | 20       | 
 | thresh_max     | 100    | 
 | kernel size     | 3, 5, 15       | 
 
 After obtaining result from sobel gradient techiques, image having kernel size = 15 has remarkable contrast that we could easily identify thick lane line on the binary transformed images.
+I tried to show 2 different direction, X and Y from original images, but there are some noisy tones dislayed on the generated images of Sobel Y.
+
+#### solbelX
+![alt text][sobelx]
+#### sobelY
+![alt text][sobely]
+
+
 
 ### 2.4 Magnitude Sobel
 Next I have applied Magnitude Sobel Technique, which has combination of Sobel X and Y direction Gradient image. Though we see kernel size = 15 is best performance to show the contrast, some lane lines are fully depicted on both test4 and test5 images. Because those 2 images have big color contrast on road surface, therefore it is hard to catch lane lines as continuous ones. 
@@ -136,24 +161,46 @@ Next I have applied Magnitude Sobel Technique, which has combination of Sobel X 
 | thresh_max     | 150    | 
 | kernel size     | 3, 7, 15       | 
 
+![alt text][mag]
+
+
 ### 2.5 Direction of Gradient 
-Finally I have tested Direction of Gradient Technique as single testing module. Following are 2 main parameters I have setup for testing purposes to see effect of filtering with different parameters. Clearly, we found thresh-2 parameter gave good contrast performance of filtering images, where we see lane lines are deciphered from snow-style background image.  
+Finally I have tested Direction of Gradient Technique as single testing module. Following are 2 main parameters I have setup for testing purposes to see effect of filtering with different parameters. The `thresh-2`, a.k.a (0.7,1.3) is same setting as Text book suggested to test image. Clearly, we found thresh-2 parameter gave good contrast performance of filtering images, where we see lane lines are deciphered from snow-style background image.  
 
 
 | Parameter        | value   | 
 |:-------------:|:-------------:| 
-| thresh-1       |    (0, np.pi / 2)    | 
+| thresh-1       |    (0, np.pi / 2)  | 
 | thresh-2    | (0.7, 1.3)    | 
 
-After obtaining result from sobel gradient techiques, image having kernel size = 15 has remarkable contrast that we could easily identify thick lane line on the binary transformed images.
+![alt text][dir]
+
 
 ### 2.6 Combination of Sobel / Magnitude / Direction of Gradient  
-Then I have combined the above 4 techniques to make blend image showing lane line with the binary image. I have picked up best parameters for respective gradient techniques. I obtained good result overall from mixed images, however some of images like test4 and test5 has lost contrast on above half of image size, in a result to have incapability of drawing full length of lane lines.
+Then I have integrated above 4 techniques to make blend image showing lane line with the binary image as following code. I have picked up best parameters for respective gradient techniques. I obtained good result overall from mixed images, however some of images like test4 and test5 has lost contrast on upper half of image size, in a result to have incapability of drawing full length of lane lines.
+
+```
+def applyCombinedGradient(x):
+    
+    sobel_imagex = abs_sobel_thresh(x, orient='x', thresh_min=20, thresh_max=120, kernel_size=15)
+    sobel_imagey = abs_sobel_thresh(x, orient='y', thresh_min=20, thresh_max=120, kernel_size=15)
+
+    mag_binary = mag_thresh(x, sobel_kernel=15, mag_thresh=(80, 200))
+    dir_binary = dir_threshold(x, sobel_kernel=15, thresh=(np.pi/4, np.pi/2) )
+    
+    mybinary = np.zeros_like(dir_binary)
+    mybinary[ ((sobel_imagex == 1) & (sobel_imagey == 1)) | ( (mag_binary == 1) & (dir_binary == 1)      )      ] = 1
+    #mybinary[(sobel_imagex == 1) | ((sobel_imagey == 1) & (mag_binary == 1) & (dir_binary == 1))] = 1
+    return mybinary
+```
+![alt text][sobelcombine]
+
+
 In order to grab more contrast for Yellow and White line on the road, I also applied HSL binary image filtering.
 One is to use full channels of HLS extracting Yellow and White line, another is to focus on just S channel having threshold parameters for Yellow and White line.
 
 **My final conclusion which is best criteria highlighting Yellow and White lane line:**
-S channel + Sobel Gradient Filtering is best combination to draw the lane line of the road with the binary image. 
+S channel + Sobel Gradient Filtering is best combination to draw the full length of lane line on the road binary image. 
 
 HLS Yellow 
 ```
@@ -192,37 +239,45 @@ HLS Yellow
 
 Then regenerated 2types of images - Colored images (3 channels image, but channel0 is ZERO pad, and channel1 is sobel gradient combined image, and channel2 is HLS filtering image.) and binary images to extract sobel gradient combined and HLS filtering.
 
+#### Colored Image
 
-![alt text][image3]
+![alt text][hls_color]
+
+#### Integrated Binary Image
+
+![alt text][hls_binary]
+
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
+The code for my perspective transform is written on `undistort_corners_warp` module. After grabing gray conversion image shape, original trapezoid shape defined as **src** array
+has been transfered to squre style polygon, which region is defined as **dst**.  **src** and **dst** are hardcoded parameters on program code.
+Then, Opencv perspectivetransform and warpPerspective are used to make bird view images.  
 
 ```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
+    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    img_size = (gray.shape[1], gray.shape[0])
+
+    src = np.float32([[180, img_size[1]], [575, 460], 
+                    [705, 460], [1150, img_size[1]]])
+
+    dst = np.float32([[250, img.shape[0]], [250, 0], 
+                      [960, 0], [960, img.shape[0]]])
+
+
 ```
 
-
-This resulted in the following source and destination points:
+Following source and destination points are used in `undistort_corners_warp`
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
+| 180, 1250      | 250, 720        | 
+| 575, 460      | 250, 0      |
+| 705, 460     | 960, 0      |
+| 1150,       | 960, 720        |
 
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
+
+For the visual verification, I have generated comaprison image matrix for normal and warped images as follows;
 
 ![alt text][image4]
 
