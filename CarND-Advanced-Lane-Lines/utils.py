@@ -290,29 +290,19 @@ def pipelineBinaryImage3(image, s_thresh=(170, 255), sx_thresh=(20, 100)):
     #
     return color_binary, combined_binary
 
-def pipelineBinaryImage4(x): # , s_thresh=(170, 255), sx_thresh=(20, 100)):
+def pipelineBinaryImage4(x, s_thresh=(170, 255), sx_thresh=(20, 100)):
 
     hls = cv2.cvtColor(x, cv2.COLOR_RGB2HLS)
     s_image = hls[:,:,2]
     l_image = hls[:,:,1]
 
-    s_thresh=(170, 255)
-    sx_thresh=(20, 100)
-
-    # Threshold x gradient
     sobelx = cv2.Sobel(l_image, cv2.CV_64F, 1, 0) # Take the derivative in x
     abs_sobelx = np.absolute(sobelx) # Absolute x derivative to accentuate lines away from horizontal
-    scaled_sobelx = np.uint8(255*abs_sobelx/np.max(abs_sobelx))
-    sxbinary = threshold(scaled_sobelx,sx_thresh[0],sx_thresh[1])
-
-    # Threshold y gradient
-    sobely = cv2.Sobel(l_image, cv2.CV_64F, 0, 1) # Take the derivative in x
-    abs_sobely = np.absolute(sobely) # Absolute x derivative to accentuate lines away from horizontal
-    scaled_sobely = np.uint8(255*abs_sobely/np.max(abs_sobely))
-    sybinary = threshold(scaled_sobely,sx_thresh[0],sx_thresh[1])
-    
-    sxybinary = np.zeros_like(sobelx)
-    sxybinary[  (sxbinary == 1) | (sybinary == 1)  ] = 1
+    scaled_sobel = np.uint8(255*abs_sobelx/np.max(abs_sobelx))    
+    # Threshold x gradient
+    sxbinary = np.zeros_like(scaled_sobel)
+    sxbinary[(scaled_sobel >= sx_thresh[0]) & (scaled_sobel <= sx_thresh[1])] = 1
+    #plt.imshow(sxbinary)
 
     s_binary = np.zeros_like(s_image)    
     s_binary[(s_image > s_thresh[0]) & (s_image <= s_thresh[1])] = 1
@@ -320,7 +310,7 @@ def pipelineBinaryImage4(x): # , s_thresh=(170, 255), sx_thresh=(20, 100)):
     # Stack each channel
     # Note color_binary[:, :, 0] is all 0s, effectively an all black image. It might
     # be beneficial to replace this channel with something else.
-    color_binary = np.dstack(( np.zeros_like(sxybinary), sxbinary, s_binary   )) * 255
+    color_binary = np.dstack(( np.zeros_like(sxybinary), sxybinary, s_binary   )) * 255
     
     # Combine the two binary thresholds
     combined_binary = np.zeros_like(sxbinary)
@@ -378,7 +368,7 @@ def undistort_corners_unwarp(img, src, mtx, dist):
     # dst is selected after a number of experimental trial to find
     # what is best destination combination to show 
     # straight line of the warped image
-    
+
     # destination values are hardcoded as follows; 
     dst = np.float32([[250, img.shape[0]], [250, 0], 
                       [960, 0], [960, img.shape[0]]])
@@ -392,3 +382,4 @@ def undistort_corners_unwarp(img, src, mtx, dist):
 
     # Return the resulting image and matrix
     return warped, M, Minv
+
