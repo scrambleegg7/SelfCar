@@ -201,14 +201,15 @@ def hls_threshold(img, thresh=(0, 255)):
 def applyCombinedGradient(x):
     
     sobel_imagex = abs_sobel_thresh(x, orient='x', thresh_min=20, thresh_max=120, kernel_size=15)
-    #sobel_imagey = abs_sobel_thresh(x, orient='y', thresh_min=20, thresh_max=120, kernel_size=15)
+    sobel_imagey = abs_sobel_thresh(x, orient='y', thresh_min=20, thresh_max=120, kernel_size=15)
 
     mag_binary = mag_thresh(x, sobel_kernel=15, mag_thresh=(80, 200))
-    dir_binary = dir_threshold(x, sobel_kernel=15, thresh=(np.pi/4, np.pi/2) )
+    #dir_binary = dir_threshold(x, sobel_kernel=15, thresh=(np.pi/4, np.pi/2) )
+    dir_binary = dir_threshold(x, sobel_kernel=15, thresh=(0.7, 1.3) )
     
     mybinary = np.zeros_like(dir_binary)
-    mybinary[ (sobel_imagex == 1)  | ( (mag_binary == 1) & (dir_binary == 1)      )      ] = 1
-    #mybinary[(sobel_imagex == 1) | ((sobel_imagey == 1) & (mag_binary == 1) & (dir_binary == 1))] = 1
+    #mybinary[ (sobel_imagex == 1)  | ( (mag_binary == 1) & (dir_binary == 1)      )      ] = 1
+    mybinary[(sobel_imagex == 1) |  ((sobel_imagey == 1) & (mag_binary == 1) & (dir_binary == 1))] = 1
     return mybinary
 
 def pipelineBinaryImage(image):
@@ -220,8 +221,10 @@ def pipelineBinaryImage(image):
             
     combined_binary = np.zeros_like(combined_image)
     combined_binary[ (combined_image == 1)  | ( hls_image == 1) ] = 1
+
+    color_binary = np.dstack(( np.zeros_like(combined_image), combined_image, hls_image   )) * 255
         
-    return combined_binary
+    return color_binary, combined_binary
 #
 #   sobelx binary + s_channel colored filtering
 #   Green channel = soblel binary filtering
@@ -240,19 +243,39 @@ def pipelineColorImage(x):
 #
 #   sobelx binary + s_channel binary filtering
 #
-def pipelineBinaryImage2(x):
+def pipelineBinaryImage2(image, s_thresh=(170, 255), sx_thresh=(20, 100)):
 
-    s_channel_image = hls_threshold(x, thresh=(170,255))
-    sobelx_image = abs_sobel_thresh(x, orient='x', thresh_min=20, thresh_max=100)
+    hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
+    s_image = hls[:,:,2]
+    # Threshold color channel
+    s_binary = np.zeros_like(s_image)
+    s_binary[(s_image >= s_thresh[0]) & (s_image <= s_thresh[1])] = 1
 
-    combined_binary = np.zeros_like(s_channel_image)
-    combined_binary[ (sobelx_image == 1)  | ( s_channel_image == 1) ] = 1
+    sobel_imagex = abs_sobel_thresh(image, orient='x', thresh_min=20, thresh_max=120, kernel_size=15)
+    sobel_imagey = abs_sobel_thresh(image, orient='y', thresh_min=20, thresh_max=120, kernel_size=15)
+    mag_binary = mag_thresh(image, sobel_kernel=15, mag_thresh=(80, 200))
+    dir_binary = dir_threshold(image, sobel_kernel=15, thresh=(np.pi/4, np.pi/2) )
 
+    sxbinary = np.zeros_like(dir_binary)
+    #mybinary[ (sobel_imagex == 1)  | ( (mag_binary == 1) & (dir_binary == 1)      )      ] = 1
+    sxbinary[(sobel_imagex == 1) |  ((sobel_imagey == 1) & (mag_binary == 1) & (dir_binary == 1))] = 1
+
+    # Stack each channel
+    # Note color_binary[:, :, 0] is all 0s, effectively an all black image. It might
+    # be beneficial to replace this channel with something else.
+    color_binary = np.dstack(( np.zeros_like(sxbinary), sxbinary, s_binary   )) * 255
+    color_binary = color_binary.astype(np.uint8)
+    
+    # Combine the two binary thresholds
+    combined_binary = np.zeros_like(sxbinary)
+    combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
+    
     #
-    # binary image
+    # result is 2 output parameters 
+    # a. colored binary = 3 channels 
+    # b. combined parameters. binary image
     #
-    return combined_binary
-#
+    return color_binary, combined_binary#
 #  l channel of HLS applied to sobelx  
 #  S channel of HLS binary filtering. 
 def pipelineBinaryImage3(image, s_thresh=(170, 255), sx_thresh=(20, 100)):
@@ -302,7 +325,16 @@ def pipelineBinaryImage4(x, s_thresh=(170, 255), sx_thresh=(20, 100)):
     # Threshold x gradient
     sxbinary = np.zeros_like(scaled_sobel)
     sxbinary[(scaled_sobel >= sx_thresh[0]) & (scaled_sobel <= sx_thresh[1])] = 1
-    #plt.imshow(sxbinary)
+
+    sobely = cv2.Sobel(l_image, cv2.CV_64F, 0, 1) # Take the derivative in x
+    abs_sobely = np.absolute(sobely) # Absolute x derivative to accentuate lines away from horizontal
+    scaled_sobely = np.uint8(255*abs_sobely/np.max(abs_sobely))    
+    # Threshold x gradient
+    sybinary = np.zeros_like(scaled_sobely)
+    sybinary[(scaled_sobely >= sx_thresh[0]) & (scaled_sobely <= sx_thresh[1])] = 1
+
+    sxybinary = np.zeros_like(scaled_sobel)
+    sxybinary[ (sxbinary == 1)  & ( sybinary == 1) ] = 1
 
     s_binary = np.zeros_like(s_image)    
     s_binary[(s_image > s_thresh[0]) & (s_image <= s_thresh[1])] = 1
@@ -314,7 +346,7 @@ def pipelineBinaryImage4(x, s_thresh=(170, 255), sx_thresh=(20, 100)):
     
     # Combine the two binary thresholds
     combined_binary = np.zeros_like(sxbinary)
-    combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
+    combined_binary[(s_binary == 1) | (sxybinary == 1)] = 1
     
     #
     # result is 2 output parameters 

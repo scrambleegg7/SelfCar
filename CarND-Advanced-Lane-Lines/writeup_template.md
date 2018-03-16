@@ -177,7 +177,7 @@ Finally I have tested Direction of Gradient Technique as single testing module. 
 
 
 ### 2.6 Combination of Sobel / Magnitude / Direction of Gradient  
-Then I have integrated above 4 techniques to make blend image showing lane line with the binary image as following code. I have picked up best parameters for respective gradient techniques. I obtained good result overall from mixed images, however some of images like test4 and test5 has lost contrast on upper half of image size, in a result to have incapability of drawing full length of lane lines.
+Then I have integrated above 4 techniques to make blend image showing lane line with the binary image as following code. I have picked up best parameters for respective gradient techniques. I obtained good result overall from mixed images, however some of images like test4 and test5 has lost contrast on upper half of each window, in a result to have incapability of drawing full length of lane lines.
 
 ```
 def applyCombinedGradient(x):
@@ -196,11 +196,12 @@ def applyCombinedGradient(x):
 ![alt text][sobelcombine]
 
 
-In order to grab more contrast for Yellow and White line on the road, I also applied HSL binary image filtering.
+Thus we need to grab more contrast for Yellow and White line on the road, then I have decided to apply HSL binary image filtering.
 One is to use full channels of HLS extracting Yellow and White line, another is to focus on just S channel having threshold parameters for Yellow and White line.
 
 **My final conclusion which is best criteria highlighting Yellow and White lane line:**
-S channel + Sobel Gradient Filtering is best combination to draw the full length of lane line on the road binary image. 
+S channel + Sobel X Gradient Filtering is best combination to draw the full length of lane line on the road binary image.
+The reason why I only choose X direction of Sobel Gradient Filter is that I would get rid out of noisy lines of Y direction. 
 
 HLS Yellow 
 ```
@@ -237,7 +238,7 @@ HLS Yellow
 
 ```
 
-Then regenerated 2types of images - Colored images (3 channels image, but channel0 is ZERO pad, and channel1 is sobel gradient combined image, and channel2 is HLS filtering image.) and binary images to extract sobel gradient combined and HLS filtering.
+Then regenerated 2 types of images - Colored images (3 channels image, but channel0 is ZERO pad, and channel1 is sobel gradient combined image, and channel2 is HLS filtering image.) and binary images to extract sobel gradient combined and HLS filtering.
 
 #### Colored Image
 
@@ -248,10 +249,11 @@ Then regenerated 2types of images - Colored images (3 channels image, but channe
 ![alt text][hls_binary]
 
 
+https://www.learnopencv.com/color-spaces-in-opencv-cpp-python/
+
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform is written on `undistort_corners_warp` module. After grabing gray conversion image shape, original trapezoid shape defined as **src** array
-has been transfered to squre style polygon, which region is defined as **dst**.  **src** and **dst** are hardcoded parameters on program code.
+The code for my perspective transform is written on `undistort_corners_warp` module. After grabing gray conversion image shape, original trapezoid shape defined as **src** array has been transfered to squre style polygon, which region is defined as **dst**.  **src** and **dst** are hardcoded parameters on program code.
 Then, Opencv perspectivetransform and warpPerspective are used to make bird view images.  
 
 ```python
@@ -263,11 +265,9 @@ Then, Opencv perspectivetransform and warpPerspective are used to make bird view
 
     dst = np.float32([[250, img.shape[0]], [250, 0], 
                       [960, 0], [960, img.shape[0]]])
-
-
 ```
 
-Following source and destination points are used in `undistort_corners_warp`
+The defined source and destination points are used in `undistort_corners_warp` module.
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
@@ -275,6 +275,40 @@ Following source and destination points are used in `undistort_corners_warp`
 | 575, 460      | 250, 0      |
 | 705, 460     | 960, 0      |
 | 1150,       | 960, 720        |
+
+full code of `undistort_corners_warp` is;
+
+
+```
+def undistort_corners_unwarp(img, src, mtx, dist):
+
+    # images should be undistortion based on camera calibration.
+    # incoming image is RGB format --> skimage.io.imread
+    undist = cv2.undistort(img, mtx, dist, None, mtx)
+    
+    # Convert undistorted image to grayscale
+    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    img_size = (gray.shape[1], gray.shape[0])
+    
+    # Define 4 destination points
+    
+    # Mar. 10, 2018 
+    # dst is selected after a number of experimental trial to find
+    # what is best destination combination to show 
+    # straight line of the warped image 
+    dst = np.float32([[250, img.shape[0]], [250, 0], 
+                      [960, 0], [960, img.shape[0]]])
+    
+    # Given src and dst points, calculate the perspective transform matrix
+    M = cv2.getPerspectiveTransform(src, dst)
+    
+    Minv = cv2.getPerspectiveTransform(dst, src)
+    # Warp the image using OpenCV warpPerspective()
+    warped = cv2.warpPerspective(img, M, img_size)
+
+    # Return the resulting image and matrix
+    return warped, M, Minv
+```
 
 
 For the visual verification, I have generated comaprison image matrix for normal and warped images as follows;
