@@ -206,10 +206,12 @@ def applyCombinedGradient(x):
     mag_binary = mag_thresh(x, sobel_kernel=15, mag_thresh=(80, 200))
     #dir_binary = dir_threshold(x, sobel_kernel=15, thresh=(np.pi/4, np.pi/2) )
     dir_binary = dir_threshold(x, sobel_kernel=15, thresh=(0.7, 1.3) )
+    dir_binary = dir_binary.astype(np.uint8)
     
     mybinary = np.zeros_like(dir_binary)
-    #mybinary[ (sobel_imagex == 1)  | ( (mag_binary == 1) & (dir_binary == 1)      )      ] = 1
-    mybinary[(sobel_imagex == 1) |  ((sobel_imagey == 1) & (mag_binary == 1) & (dir_binary == 1))] = 1
+    #mybinary[(sobel_imagex == 1) |  ((sobel_imagey == 1) & (mag_binary == 1) & (dir_binary == 1))] = 1
+    mybinary[ (sobel_imagex == 1) | ( (mag_binary == 1) & (dir_binary == 1)      )      ] = 1
+    
     return mybinary
 
 def pipelineBinaryImage(image):
@@ -217,13 +219,14 @@ def pipelineBinaryImage(image):
     # incoming is undistortion image 
 
     combined_image = applyCombinedGradient(image)
-    hls_image = hls_threshold(image, thresh=(90, 255))
+    hls_image = hls_threshold(image, thresh=(170, 255))
             
     combined_binary = np.zeros_like(combined_image)
     combined_binary[ (combined_image == 1)  | ( hls_image == 1) ] = 1
 
     color_binary = np.dstack(( np.zeros_like(combined_image), combined_image, hls_image   )) * 255
-        
+    color_binary = color_binary.astype(np.uint8)
+    
     return color_binary, combined_binary
 #
 #   sobelx binary + s_channel colored filtering

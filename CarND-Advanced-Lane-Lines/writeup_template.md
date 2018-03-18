@@ -34,6 +34,15 @@ The goals / steps of this project we have to address are the following:
 [sobelcombine]: ./results_images/sobelcombine.jpeg "direction"
 [hls_color]: ./results_images/hls_color.jpeg "rgb"
 [hls_binary]: ./results_images/hls_binary.jpeg "rgb"
+[hls]: ./results_images/hls.jpeg "rgb"
+[s_thresh]: ./results_images/s_thresh.jpeg "rgb"
+[warp]: ./results_images/warp.jpeg "rgb"
+[warp_binary]: ./results_images/warp_binary.jpeg "rgb"
+[histogram]: ./results_images/histogram.jpeg "rgb"
+[initFit]: ./results_images/initFit.jpeg "rgb"
+[curve1]: ./results_images/curve1.jpeg "rgb"
+[curve2]: ./results_images/curve2.jpeg "rgb"
+[curve3]: ./results_images/curve3.jpeg "rgb"
 
 ---
 
@@ -165,7 +174,7 @@ Next I have applied Magnitude Sobel Technique, which has combination of Sobel X 
 
 
 ### 2.5 Direction of Gradient 
-Finally I have tested Direction of Gradient Technique as single testing module. Following are 2 main parameters I have setup for testing purposes to see effect of filtering with different parameters. The `thresh-2`, a.k.a (0.7,1.3) is same setting as Text book suggested to test image. Clearly, we found thresh-2 parameter gave good contrast performance of filtering images, where we see lane lines are deciphered from snow-style background image.  
+Finally I have tested Direction of Gradient Technique as single testing module. Following are 2 main parameters I have setup for testing purposes to see effect of filtering with different parameters. The `thresh-2`, a.k.a (0.7,1.3) is same setting as Text book suggested to test image. Clearly, we found `thresh-2` parameter gave good contrast performance of filtering images, where we see lane lines are deciphered from snow-style background image.  
 
 
 | Parameter        | value   | 
@@ -177,7 +186,8 @@ Finally I have tested Direction of Gradient Technique as single testing module. 
 
 
 ### 2.6 Combination of Sobel / Magnitude / Direction of Gradient  
-Then I have integrated above 4 techniques to make blend image showing lane line with the binary image as following code. I have picked up best parameters for respective gradient techniques. I obtained good result overall from mixed images, however some of images like test4 and test5 has lost contrast on upper half of each window, in a result to have incapability of drawing full length of lane lines.
+Then I have integrated above 4 techniques to make blend image showing lane line with the binary image as following code. I have picked up best parameters for respective gradient techniques. I obtained good result overall from mixed images, 
+however some of images like **test4** and **test5** has lost contrast on upper half of each window, in a result to have incapability of drawing full length of lane lines.
 
 ```
 def applyCombinedGradient(x):
@@ -199,33 +209,16 @@ def applyCombinedGradient(x):
 Thus we need to grab more contrast for Yellow and White line on the road, then I have decided to apply HSL binary image filtering.
 One is to use full channels of HLS extracting Yellow and White line, another is to focus on just S channel having threshold parameters for Yellow and White line.
 
-**My final conclusion which is best criteria highlighting Yellow and White lane line:**
-S channel + Sobel X Gradient Filtering is best combination to draw the full length of lane line on the road binary image.
-The reason why I only choose X direction of Sobel Gradient Filter is that I would get rid out of noisy lines of Y direction. 
+### 2.7 HLS Image
 
-HLS Yellow 
-```
-    hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
+Looking at the below sample to devide 3 channels into H L S from cv2.cvColor function, L and S channel has robust outcome to show the yellow and white line. So we we will take a further look at both channel how we can highlight yellow and white lanes from road image.
 
-    # HLS yellow colored mask
-    lower = np.array([20,120,80]).astype(np.uint8)
-    upper = np.array([45,200,255]).astype(np.uint8)
-    mask = cv2.inRange(hls,lower,upper)
-    hls_y = cv2.bitwise_and(image, image, mask=mask)
-    hls_y = cv2.cvtColor(hls_y, cv2.COLOR_HLS2RGB)    
-    gray = cv2.cvtColor(hls_y, cv2.COLOR_RGB2GRAY)
-    y_hls_binary = threshold(gray, bin_thresh_min, bin_thresh_max)
+I briefly go through the following refence web page to take deep insight of color channels like HLS and RGB etc..
+https://www.learnopencv.com/color-spaces-in-opencv-cpp-python/
 
-    # white colored mask
-    lower = np.array([0,200,0]).astype(np.uint8)
-    upper = np.array([255,255,255]).astype(np.uint8)
-    mask = cv2.inRange(hls,lower,upper)
-    hls_w = cv2.bitwise_and(image, image, mask=mask)
-    hls_w = cv2.cvtColor(hls_w, cv2.COLOR_HLS2RGB)    
-    gray = cv2.cvtColor(hls_w, cv2.COLOR_RGB2GRAY)
-    w_binary = threshold(gray, bin_thresh_min, bin_thresh_max)
+![alt text][hls]
 
-```
+Using following S channel threshhold setting, we can see yellow lines are fairly robust to draw it as the extended lines from bottom to top of each images. On the `test4` and `test5` road images, it is confirmed that left lines can be clearly viewed.  
 
 ```
     # input is RGB (skimage.io.imread)
@@ -237,100 +230,154 @@ HLS Yellow
     binary[(S > thresh[0]) & (S <= thresh[1])] = 1
 
 ```
+![alt text][s_thresh]
 
-Then regenerated 2 types of images - Colored images (3 channels image, but channel0 is ZERO pad, and channel1 is sobel gradient combined image, and channel2 is HLS filtering image.) and binary images to extract sobel gradient combined and HLS filtering.
+
+### 2.8 Integration with HLS Color and Binary threshhold 
+
+Here I have combined HLS color image and Binary threshhold to build up more robust images of lane lines. There are 3 scenario I have tried 
+
+| No        | Color    | 
+|:-------------:|:-------------:| 
+| Scenario 1 | HLS Color masking + Sobel Combinnation (build on section 2.6) | 
+| Scenario 2    | S channel threshhold + Sobel Combinnation (build on section 2.6)    | 
+| Scenario 3   | S channel threshhold +  L channel Sobel Combinnation    |
 
 #### Colored Image
+This is stacked image to save S channel (or HLS masking) and Sobel combination on Green and Blue channel respectively, thus we instantly understand what layer has what kinds of impacts on transferred image. 
 
 ![alt text][hls_color]
 
 #### Integrated Binary Image
+Finally, I have integrated S channel threshhold and Sobel threshhold binary into one image for the above mentioned scenarios. 
 
 ![alt text][hls_binary]
 
 
-https://www.learnopencv.com/color-spaces-in-opencv-cpp-python/
 
-#### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
+## 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform is written on `undistort_corners_warp` module. After grabing gray conversion image shape, original trapezoid shape defined as **src** array has been transfered to squre style polygon, which region is defined as **dst**.  **src** and **dst** are hardcoded parameters on program code.
+### 3.1 Bird View Image
+
+The code for my perspective transform is written on `warp_gen` module. After grabing gray conversion image shape, original trapezoid shape defined as **src** array has been transfered to squre style polygon, which region is defined as **dst**.  **src** and **dst** are hardcoded parameters on program code.
+
 Then, Opencv perspectivetransform and warpPerspective are used to make bird view images.  
 
+
 ```python
-    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    img_size = (gray.shape[1], gray.shape[0])
-
-    src = np.float32([[180, img_size[1]], [575, 460], 
-                    [705, 460], [1150, img_size[1]]])
-
-    dst = np.float32([[250, img.shape[0]], [250, 0], 
-                      [960, 0], [960, img.shape[0]]])
+src = np.float32([[270,674],
+                 [579,460],
+                 [702,460],
+                 [1060,674]])
+dst = np.float32([[270,674],
+                 [270,0],
+                 [1035,0],
+                 [1035,674]])
 ```
 
-The defined source and destination points are used in `undistort_corners_warp` module.
-
-| Source        | Destination   | 
-|:-------------:|:-------------:| 
-| 180, 1250      | 250, 720        | 
-| 575, 460      | 250, 0      |
-| 705, 460     | 960, 0      |
-| 1150,       | 960, 720        |
-
-full code of `undistort_corners_warp` is;
-
+The source codes related to perspective transformation of undistorted original images are splitted into 3 parts, which are **M_gen**, **warp_gen**, and **undistort_corners** as follows.
 
 ```
-def undistort_corners_unwarp(img, src, mtx, dist):
+def M_gen(src,dst):
+    
+    # Given src and dst points, calculate the perspective transform matrix
+    # source is 4 points trapezoid
+    # destination is 4 points rectangle
+    M = cv2.getPerspectiveTransform(src, dst)
+    Minv = cv2.getPerspectiveTransform(dst, src)
+    return M, Minv
+
+def warp_gen(img,M):
+    # check out the image shape
+    img_size = ( img.shape[1], img.shape[0] )
+    warped = cv2.warpPerspective(img, M, img_size)
+    # Return the resulting image and matrix
+    return warped
+
+def undistort_corners(img, mtx, dist):
 
     # images should be undistortion based on camera calibration.
     # incoming image is RGB format --> skimage.io.imread
     undist = cv2.undistort(img, mtx, dist, None, mtx)
-    
-    # Convert undistorted image to grayscale
-    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    img_size = (gray.shape[1], gray.shape[0])
-    
-    # Define 4 destination points
-    
-    # Mar. 10, 2018 
-    # dst is selected after a number of experimental trial to find
-    # what is best destination combination to show 
-    # straight line of the warped image 
-    dst = np.float32([[250, img.shape[0]], [250, 0], 
-                      [960, 0], [960, img.shape[0]]])
-    
-    # Given src and dst points, calculate the perspective transform matrix
-    M = cv2.getPerspectiveTransform(src, dst)
-    
-    Minv = cv2.getPerspectiveTransform(dst, src)
-    # Warp the image using OpenCV warpPerspective()
-    warped = cv2.warpPerspective(img, M, img_size)
-
-    # Return the resulting image and matrix
-    return warped, M, Minv
+    return undist
 ```
 
+For the visual verification to investigate whether area are correctly cropped and transformed to bird view images, I have generated comaprison image matrix for normal and warped images as follows;
+Straight lane lines and curved lane lines are confirmed to draw the paralell ones on respective new transformed images. 
 
-For the visual verification, I have generated comaprison image matrix for normal and warped images as follows;
-Straight lane lines and curved lane lines are confirmed to draw the paralell ones on respective images. 
+![alt text][warp]
 
-![alt text][image4]
+### 3.2 Binary Warped Image
 
-#### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
+Then I have converted warp images to Binary Images so that both yellow and white lines are highlighted as white lines on binary images. 
+There are some noisy scattered points displayed on test5. 
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+![alt text][warp_binary]
 
-![alt text][image5]
+## 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-#### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+### 4.1 Histogram approach
+First, I have applied histogram approach which detects center, left and right lane points from warped images, then counts how many pixcel are plotted as lane every sliding squared box from bottom to top of each images. Initial sliding window size is set to 9, therefore 9 small windows are build up from bottom to top so that function pick up pixcel points.
+If pixcel point recognized as lane line is deteced on binary image, those scatter plot points are saved **(x,y)** and then build up array to store all points on x and y axis. 
+Once those slinding window searching technique is finalized on each image, all pixcel data are put into polynormal function of numpy. then we can get coefficient parameter a, b and c from standard mathematical formula.   
 
-I did this in lines # through # in my code in `my_other_file.py`
+$$x = ay^2 + by + c$$
+
+![alt text][histogram]
+
+The below image tables show fitting curves on sample test images based on searched lane line plotting data. There are several curve lanes depicted on the bird view images.
+
+![alt text][initFit]
+
+
+## 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+
+I have utilized following math formula to calculate each lane line curvature on the road. A and B is a cofficient parameters generated from polyfit function.
+Also, y and x are converted in real meaurement of the lane line on the road. Those values are according to US road regulation.
+Thus, x and y are calculated as meters per pixel, then the radius of curvature is displayed as meter. 
+
+```
+def curvature(ploty, left_fitx, right_fitx):
+
+    # 
+    # This logic can be used for sanitary check polyfit calculation.
+    #
+    y_eval = np.max(ploty)
+    # Define conversions in x and y from pixels space to meters
+    ym_per_pix = 30/720.0 # meters per pixel in y dimension
+    xm_per_pix = 3.7/700.0 # meters per pixel in x dimension
+    
+    lefty = ploty*ym_per_pix
+    leftx = left_fitx*xm_per_pix
+    righty = ploty*ym_per_pix
+    rightx = right_fitx*xm_per_pix
+    
+    left_fit_cr, right_fit_cr = fitting(lefty,leftx,righty,rightx)
+    #left_fit_cr = np.polyfit(ploty*ym_per_pix, left_fitx*xm_per_pix, 2)
+    #right_fit_cr = np.polyfit(ploty*ym_per_pix, right_fitx*xm_per_pix, 2)    
+    # Calculate the new radii of curvature
+    a, b, c = left_fit_cr
+    left_curverad = ((1 + (2*a*y_eval*ym_per_pix + b)**2)**1.5) / np.absolute(2*a)
+    
+    a, b, c = right_fit_cr
+    right_curverad = ((1 + (2*a*y_eval*ym_per_pix + b)**2)**1.5) / np.absolute(2*a)
+    return left_curverad, right_curverad
+    # Now our radius of curvature is in meters
+```
+
+* A and B is fitting parameters. 
+ $$R_{curve} = \frac{ (1 + (2Ay + B)^2) ^\frac{3}{2}  }{ |2A| } $$
+
+
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+The below are result imagesm which plotted bach down the road image. Also, I have described left and right radius of curvature on the integrated image.
 
-![alt text][image6]
+![alt text][curve1]
+![alt text][curve2]
+![alt text][curve3]
+
 
 ---
 
@@ -338,7 +385,20 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+In the end to finalize 4th CarND Advanced Lane, I have successfully generated video which shows the green zone as the finding target zone.
+I have used following codes.
+
+```
+in_file = "project_video.mp4"
+out_file = os.path.join("output_images",in_file)
+
+print('Processing video ...')
+clip2 = VideoFileClip(in_file)
+vid_clip = clip2.fl_image(testPipeline)
+%time vid_clip.write_videofile(out_file, audio=False)
+```
+
+Here's a [link to my video result](./output_images/project_video.mp4)
 
 ---
 
@@ -346,4 +406,4 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+There are some issues 
