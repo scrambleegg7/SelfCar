@@ -385,25 +385,43 @@ The below are result imagesm which plotted bach down the road image. Also, I hav
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-In the end to finalize 4th CarND Advanced Lane, I have successfully generated video which shows the green zone as the finding target zone.
-I have used following codes.
+In the end to finalize 4th CarND Advanced Lane, I have successfully generated video (normal version) which can higlight the green tapezoid zone indentical to real road lane after finding target zone.
+Apart from jupyter notebook, I have build another python program **LangeDetector class module** to generate stream lined video file.
+then main program **Video.py** call LaneDetector class module. 
 
 ```
-in_file = "project_video.mp4"
-out_file = os.path.join("output_images",in_file)
+def main():
 
-print('Processing video ...')
-clip2 = VideoFileClip(in_file)
-vid_clip = clip2.fl_image(testPipeline)
-%time vid_clip.write_videofile(out_file, audio=False)
+    paramCls = ParametersClass()
+    params = paramCls.initialize()
+ 
+    
+    print("-"*30)
+    print("* incoming video file name *",params.infile)
+    print("-"*30)
+ 
+    input_video = params.infile
+
+    output_video = os.path.join("output_images",input_video )
+
+    lane_detector = LaneDetector()
+
+    clip1 = VideoFileClip(input_video)
+    video_clip = clip1.fl_image(lane_detector.image_pipeline)
+    video_clip.write_videofile(output_video, audio=False)
 ```
 
 Here's a [link to my video result](./output_images/project_video.mp4)
 
 ---
 
-### Discussion
+# Discussion
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-There are some issues 
+## 1. Building Binary Image.
+As text book suggested, there are no gound true answer to make final binary image (eg. masking yellow line and white line from readl road image), THus we need to go through numerious image scneaios starting from RGB chanel analysis to making the combined image of colored and binary threshhold. Even after number of trials to tweak parameters for threshold and split each channel consisting of undistorted images, we need to come back to search another best parameters if we fail to get lane line, especially curved lane. It was time consuming process for me to get final parameters.
+
+## 2. Finding lane.
+As described in the section **Pipeline Video** section, I have succesfully get it done to make a visualized video file integrating real road image and selected lane area highlighted with green color. Lane finding algorythm works well for the constant image, which clearly has yellow and white line without any interrupted obstruction, however once road condition is changed, it lose to calculate right lane line points due to contrast of lane line is shrinked. For example, road image around 41seconds from starting points of video file, lane lines are shaded with the shadow of the trees. Then curvature values of left and right side are dramatically decreased close to 100m.
+We need to make another approach for making binary threshold image file for any scenarios of the road condition, as a result to make more generalized model making.       

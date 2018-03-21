@@ -209,8 +209,8 @@ def applyCombinedGradient(x):
     dir_binary = dir_binary.astype(np.uint8)
     
     mybinary = np.zeros_like(dir_binary)
-    #mybinary[(sobel_imagex == 1) |  ((sobel_imagey == 1) & (mag_binary == 1) & (dir_binary == 1))] = 1
-    mybinary[ (sobel_imagex == 1) | ( (mag_binary == 1) & (dir_binary == 1)      )      ] = 1
+    mybinary[(sobel_imagex == 1) |  ((sobel_imagey == 1) & (mag_binary == 1) & (dir_binary == 1))] = 1
+    # mybinary[ (sobel_imagex == 1) | ( (mag_binary == 1) & (dir_binary == 1)      )      ] = 1
     
     return mybinary
 
@@ -418,3 +418,22 @@ def undistort_corners_unwarp(img, src, mtx, dist):
     # Return the resulting image and matrix
     return warped, M, Minv
 
+
+def equYCrCb(img):
+
+    ycrcb = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
+
+    ch1 = ycrcb[:,:,0]
+    ch2 = ycrcb[:,:,1]
+    ch3 = ycrcb[:,:,2]
+
+    # apply histogram equalization for each channel
+    equ1 = cv2.equalizeHist(ch1)
+    equ2 = ch2
+    equ3 = ch3
+
+    # stack/combine channels again
+    histeq = np.dstack((equ1,equ2,equ3))
+    rgb = cv2.cvtColor(histeq, cv2.COLOR_YCrCb2RGB)
+    
+    return rgb
