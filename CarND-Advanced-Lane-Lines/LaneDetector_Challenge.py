@@ -28,11 +28,8 @@ from utils import applyCombinedGradient
 
 from utils import mag_thresh, dir_threshold
 
-from utils import showImageList
-from utils import pipelineBinaryImage
-from utils import pipelineBinaryImage2
-from utils import pipelineBinaryImage3
-from utils import pipelineBinaryImage4
+from utils import *
+
 
 import platform
 
@@ -160,7 +157,13 @@ class LaneDetector(object):
         a, b, c = right_fit_cr
         right_curverad = ((1 + (2*a*y_eval*ym_per_pix + b)**2)**1.5) / np.absolute(2*a)
 
-        return left_curverad, right_curverad
+        centerOfLanes = (left_fitx[-1] + right_fitx[-1])//2
+        veh_pos = self.warp_image.shape[0]//2
+        dx = (veh_pos - centerOfLanes)*xm_per_pix # Positive if on right, Negative on left        
+        #centerOfLanes = (self.leftx_base + self.rightx_base) / 2
+        #offset = (centerOfLanes-( self.warp_image.shape[0]  / 2))*xm_per_pix
+
+        return left_curverad, right_curverad, dx
 
     #
     # --------------------------------------------------------------
@@ -212,9 +215,37 @@ class LaneDetector(object):
 
         return c, b
     
+    def makeWarpBinaryImage2(self, image):
+
+        """Transforms the viewpoint to a bird's-eye view.
+        Args:
+            img: A numpy image array.
+        """
+        mtx = self.mypipeline.mtx
+        dist = self.mypipeline.dist        
+        self.undist = self.undistort_corners(image, mtx, dist)
+
+        # revert of shape format shape[1] shape[0]
+        img_size = image[:,:,0].shape[::-1]
+
+        src = np.float32([[585, 450], [203, 720], [1127, 720], [695, 450]])
+        dst = np.float32([[320, 0], [320, 720], [960,720], [960, 0]])    
+        # mtx is calculated again with getPerspectiveTransform function.
+        #mtx = cv2.getPerspectiveTransform(src, dst)
+        
+        self.M, self.Minv = self.M_gen(src,dst)        
+        self.warp_image = self.warp_gen(self.undist,self.M)
+        #self.Minv = cv2.getPerspectiveTransform(dst, src)
+        #self.warp_image = cv2.warpPerspective(image, mtx, img_size)
+
+        binary = makeLOWCONTRAST(self.warp_image, thr_HLS=(80,200), thr_HSV=(20,100) )
+
+        return binary
+    
     def histogramSearch(self,binary_warped):
 
         histogram = np.sum(binary_warped[binary_warped.shape[0]//2:,:], axis=0) 
+        #shistogram = np.sum(binLowContrast[  binLowContrast.shape[0]//2:,:  ], axis=0)
         
         midpoint = np.int(histogram.shape[0]/2)
         leftx_base = np.argmax(histogram[:midpoint])
@@ -228,10 +259,12 @@ class LaneDetector(object):
         return midpoint, leftx_base, rightx_base
 
     
-    def line_detector(self,binary_warped):
+    def line_detector2(self,binary_warped):
 
         midpoint, leftx_base, rightx_base = self.histogramSearch(binary_warped)
 
+        self.leftx_base = leftx_base
+        self.rightx_base = rightx_base
 
         # Choose the number of sliding windows
         nwindows = 9
@@ -246,6 +279,8 @@ class LaneDetector(object):
         nonzero = binary_warped.nonzero()
         nonzeroy = np.array(nonzero[0])
         nonzerox = np.array(nonzero[1])
+
+        total_non_zeros = len(nonzeroy)
         
         # Current positions to be updated for each window
         leftx_current = leftx_base
@@ -254,12 +289,13 @@ class LaneDetector(object):
         # Set the width of the windows +/- margin
         margin = 100 # px
         # Set minimum number of pixels found to recenter window
-        minpix = 50 # 
+        minpix = 60 # 
         # Create empty lists to receive left and right lane pixel indices
         left_lane_inds = []
         right_lane_inds = []
         
         # Step through the windows one by one
+        self.detected = False
         if self.detected == False:
             #
             # sliding window technique
@@ -291,7 +327,7 @@ class LaneDetector(object):
             left_lane_inds = np.concatenate(left_lane_inds)
             right_lane_inds = np.concatenate(right_lane_inds)
 
-            self.detected = True
+            #self.detected = True
 
         else: 
 
@@ -301,6 +337,15 @@ class LaneDetector(object):
             right_lane_inds = ((nonzerox > (self.best_right_fit[0]*(nonzeroy**2) + self.best_right_fit[1]*nonzeroy + \
                             self.best_right_fit[2] - margin)) & (nonzerox < (self.best_right_fit[0]*(nonzeroy**2) + \
                             self.best_right_fit[1]*nonzeroy + self.best_right_fit[2] + margin)))  
+
+
+        #non_zero_found_left = np.sum(left_lane_inds)
+        #non_zero_found_right = np.sum(right_lane_inds)
+        #non_zero_found_pct = (non_zero_found_left + non_zero_found_right) / total_non_zeros
+        #if non_zero_found_pct < 0.85:
+
+            #print("non zero counter %.3f pct." % non_zero_found_pct)
+        #    self.detected = False
 
         # Extract left and right line pixel positions
         leftx = nonzerox[left_lane_inds]
@@ -318,14 +363,14 @@ class LaneDetector(object):
         length_left_fit = len(self.left_fit_array)
         length_right_fit = len(self.right_fit_array)
 
-        lastn = 10
+        lastn = 15
         self.best_left_fit = np.mean(  self.left_fit_array[-min(lastn,length_left_fit):], axis=0)  
         self.best_right_fit = np.mean(  self.right_fit_array[-min(lastn,length_right_fit):], axis=0)  
         
         left_fitx,right_fitx = self.fitXY(ploty,self.best_left_fit,self.best_right_fit)
 
         #out_img = np.dstack((binary_warped, binary_warped, binary_warped))*255
-        init_left_curved, init_right_curved = self.curvature(ploty, left_fitx, right_fitx)
+        init_left_curved, init_right_curved, off_center = self.curvature(ploty, left_fitx, right_fitx)
 
         fontScale = 2
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -334,8 +379,8 @@ class LaneDetector(object):
 
         cv2.putText(self.undist, 'Left Curvature  : {:.2f} m'.format(init_left_curved), (50, 50), font, fontScale, fontColorR, 2)
         cv2.putText(self.undist, 'Right Curvature  : {:.2f} m'.format(init_right_curved), (50, 100), font, fontScale, fontColorR, 2)
+        cv2.putText(self.undist, 'Off Center Position : {:.2f} m'.format(off_center), (50, 200), font, fontScale, fontColorR, 2)
         
-
         """        
         if self.detected == False:
             self.left_curved = init_left_curved
@@ -364,8 +409,9 @@ class LaneDetector(object):
         # Draw the lane onto the warped blank image
         cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
 
+        img_size = binary_warped.shape[::-1]
         # Warp the blank back to original image space using inverse perspective matrix (Minv)
-        newwarp = cv2.warpPerspective(color_warp, self.Minv, self.img_size ) 
+        newwarp = cv2.warpPerspective(color_warp, self.Minv, img_size ) 
         # Combine the result with the original image
         result = cv2.addWeighted(self.undist, 1, newwarp, 0.3, 0)
         #plt.imshow(result)
@@ -373,16 +419,17 @@ class LaneDetector(object):
 
         return result
 
-    def image_pipeline(self,x):
+    def image_pipeline2(self,x):
 
         #curvature(ploty, left_fitx, right_fitx)        
         #ploty = np.linspace(0, x.shape[0]-1, x.shape[0] )
         
         # generate Binary Warped Image from incoming normal image
-        _, bw = self.makeWarpBinaryImage(x)
+        #_, bw = self.makeWarpBinaryImage(x)
+        bw = self.makeWarpBinaryImage2(x)
  
         # line_detector accepts the warped binary image 
-        res = self.line_detector(bw)
+        res = self.line_detector2(bw)
         return res
  
     
@@ -445,48 +492,147 @@ class LaneDetector(object):
         #plt.imshow(out_img)
         #plt.show()
 
-    def searchinglaneline(self, binary_warped):
-        # Assuming you have created a warped binary image called "binary_warped"
-        # Take a histogram of the bottom half of the image
-        histogram = np.sum(binary_warped[binary_warped.shape[0]//2:,:], axis=0)
-        #print(histogram)
-        # Create an output image to draw on and  visualize the result
-        out_img = np.dstack((binary_warped, binary_warped, binary_warped))*255
 
-        # Find the peak of the left and right halves of the histogram
-        # These will be the starting point for the left and right lines
-        midpoint = np.int(histogram.shape[0]/2)
-        leftx_base = np.argmax(histogram[:midpoint])
-        rightx_base = np.argmax(histogram[midpoint:]) + midpoint
+    #
+    # another approach on Mar. 22nd 
+    #
+    #
+    # define a perspective transformation function
+    #
+    def image_pipeline(self,x):
+
+        mtx = self.mypipeline.mtx
+        dist = self.mypipeline.dist
+        undist_ops = lambda img:cv2.undistort(img, mtx, dist, None, mtx)
+
+        self.undist = undist_ops(x)
+
+        points = np.array([
+            [545, 457],
+            [735, 457],
+            [1280, 670],
+            [0, 670],
+        ])
+        self.Minv, warped = self.birds_eye_transform(self.undist, points, offsetx=430)      
+        self.warp_image = warped.copy()  
+
+        # check warped image
+        #plt.imshow(warped)
+        #plt.show()
+
+        #binLowContrast = makeLOWCONTRAST(warped, thr_HLS=(80,200), thr_HSV=(20,100) )
+        binLowContrast = combined_color_thresholding( warped,  thr_rgb=(200,255), thr_hsv=(170,255), thr_luv=(157,255)  )
         
-        # Choose the number of sliding windows
-        nwindows = 9
-        #
-        # Set height of windows = 720 / 9 = 80px
-        # It should be constant if we read video format.
-        #
-        window_height = np.int(binary_warped.shape[0]/nwindows)
+        # check binary Low Contrast image with combined_color_thresholding routine
+        #plt.imshow(binLowContrast)
+        #plt.show()
+ 
+        # line_detector accepts the warped binary image 
+        res = self.line_detector2(binLowContrast)
+
+        return res
+    
+    def region_of_interest(self, img, points):
+        """Mask the region of interest
+        Only keeps the region of the image defined by the polygon
+        formed from `points`. The rest of the image is set to black.
+        Args:
+            img: numpy array representing the image.
+            points: verticies, example:
+                [[(x1, y1), (x2, y2), (x4, y4), (x3, y3)]]
+        """
+        # define empty binary mask
+        mask = np.zeros_like(img)
         
-        #print("window hight --> %spx " %window_height)
-        # Identify the x and y positions of all nonzero pixels in the image
+        # define a mask color to ignore the masking area
+        # if there are more than one color channels consider
+        # the shape of ignoring mask color
+        if len(img.shape) > 2:
+            n_chs = img.shape[2]
+            ignore_mask_color = (255,) * n_chs
+        else:
+            ignore_mask_color = 255
+        
+        # define unmasking region 
+        cv2.fillPoly(mask, points, ignore_mask_color)
+        
+        # mask the image
+        masked_img = cv2.bitwise_and(img, mask)
+        
+        return masked_img
+
+    # define a perspective transformation function
+    def birds_eye_transform(self, img, points, offsetx):
+        """Transforms the viewpoint to a bird's-eye view.
+        
+        Applies a perspective transformation. Returns
+        the inverse matrix and the warped destination
+        image.
+        
+        Args:
+            img: A numpy image array.
+            points: A list of four points to be flattened.
+                Example: points = [[x1,y1], [x2,y2], [x4,y4], [x3,y3]].
+            offsetx: offset value for x-axis.
+        """
+        
+        img_size = (img.shape[1], img.shape[0])
+        
+        
+        # get the region of interest
+        img = self.region_of_interest(img, np.array([points]))
+        
+        src = np.float32(
+            [
+                points[0],
+                points[1],
+                points[2],
+                points[3],
+            ])
+
+        pt1 = [offsetx, 0]
+        pt2 = [img_size[0] - offsetx, 0]
+        pt3 = [img_size[0] - offsetx, img_size[1]]
+        pt4 = [offsetx, img_size[1]]
+        dst = np.float32([pt1, pt2, pt3, pt4])
+        
+        mtx = cv2.getPerspectiveTransform(src, dst)
+        invmtx = cv2.getPerspectiveTransform(dst, src)
+        
+        warped = cv2.warpPerspective(img, mtx, img_size)
+        
+        return invmtx, warped
+
+    def line_detector(self,binary_warped):
+
+        midpoint, leftx_base, rightx_base = self.histogramSearch(binary_warped)
+        # Current positions to be updated for each window
+
+        print(leftx_base, rightx_base)
+
+        leftx_current = leftx_base
+        rightx_current = rightx_base    
+
         nonzero = binary_warped.nonzero()
         nonzeroy = np.array(nonzero[0])
         nonzerox = np.array(nonzero[1])
         
-        # Current positions to be updated for each window
-        leftx_current = leftx_base
-        rightx_current = rightx_base    
-        
+
         # Set the width of the windows +/- margin
         margin = 100 # px
         # Set minimum number of pixels found to recenter window
-        minpix = 50 # 
+        minpix = 60 # 
         # Create empty lists to receive left and right lane pixel indices
         left_lane_inds = []
         right_lane_inds = []
-        
+        nwindows=9
+        # window height = 80
+        window_height = np.int(binary_warped.shape[0]/nwindows)
+
+        out_img = np.dstack(( binary_warped,binary_warped,binary_warped )) *255
+
         # Step through the windows one by one
-        
+
         for i, window in enumerate(range(nwindows)):
             # Identify window boundaries in x and y (and right and left)
             win_y_low = binary_warped.shape[0] - (window+1)*window_height
@@ -495,14 +641,14 @@ class LaneDetector(object):
             win_xleft_high = leftx_current + margin
             win_xright_low = rightx_current - margin
             win_xright_high = rightx_current + margin
-            
+
             # for debug
             #print(i,  win_xleft_low,win_xleft_high,win_xright_low,win_xright_high, win_y_low, win_y_high)
             # Draw the windows on the visualization image
             GREEN_C = (0,255,0)
             cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),GREEN_C, 4) 
             cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),GREEN_C, 4) 
-            
+
             # Identify the nonzero pixels in x and y within the window
             good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & 
             (nonzerox >= win_xleft_low) &  (nonzerox < win_xleft_high)).nonzero()[0]
@@ -516,33 +662,55 @@ class LaneDetector(object):
                 leftx_current = np.int(np.mean(nonzerox[good_left_inds]))
             if len(good_right_inds) > minpix:        
                 rightx_current = np.int(np.mean(nonzerox[good_right_inds]))
-                
+
         # Concatenate the arrays of indices to make flat array
         left_lane_inds = np.concatenate(left_lane_inds)
-        right_lane_inds = np.concatenate(right_lane_inds)
+        right_lane_inds = np.concatenate(right_lane_inds)        
 
-        # Extract left and right line pixel positions
+
         leftx = nonzerox[left_lane_inds]
         lefty = nonzeroy[left_lane_inds] 
         rightx = nonzerox[right_lane_inds]
         righty = nonzeroy[right_lane_inds] 
-        
 
-        return out_img,midpoint,leftx_base,rightx_base,leftx,lefty,rightx,righty
+        # just plotting for selected plot area of lane line of binary image.
+        out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+        out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
 
+        left_fit = np.polyfit(lefty, leftx, 2)
+        right_fit = np.polyfit(righty, rightx, 2)
+
+        ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
+        left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+        right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+            
+        #plt.imshow(out_img)
+        #plt.plot(left_fitx, ploty, color='yellow')
+        #plt.plot(right_fitx, ploty, color='yellow')
+        #plt.xlim(0, 1280)
+        #plt.ylim(720, 0)
+        #plt.show()
+
+        return out_img
 
 def main():
 
     lane_detector = LaneDetector()
 
-    test_image = lane_detector.mypipeline.images[4]
+    filenames = sorted( os.listdir("./challenge") )
+    filenames = [f for f in filenames if "jpg" in f ]
+    images = list( map( lambda x: imread( os.path.join("./challenge",x)), filenames) )
 
-    test_file = "./challenge/frame0.jpg"
-    test_image = imread(test_file)
+    r = np.random.permutation(len(images))
+    #select_r = r[:10]
+    select_r = [124]
 
-    test_result = lane_detector.image_pipeline(test_image)
-    plt.imshow(test_result)
-    plt.show()
+    for idx, test_image in enumerate( np.array(images)[select_r]): 
+
+        print("image index : ", select_r[idx] )
+        test_result = lane_detector.image_pipeline(test_image)
+        plt.imshow(test_result)
+        plt.show()
 
 if __name__ == "__main__":
     main()

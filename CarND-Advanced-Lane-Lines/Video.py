@@ -10,7 +10,7 @@ from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
 from Parameter import ParametersClass
 
-from LaneDetector import LaneDetector
+from LaneDetector_Challenge2 import LaneDetector
 
 def main():
 

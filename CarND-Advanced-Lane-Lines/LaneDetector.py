@@ -160,7 +160,11 @@ class LaneDetector(object):
         a, b, c = right_fit_cr
         right_curverad = ((1 + (2*a*y_eval*ym_per_pix + b)**2)**1.5) / np.absolute(2*a)
 
-        return left_curverad, right_curverad
+        centerOfLanes = (self.leftx_base + self.rightx_base) / 2
+        offset = (centerOfLanes-( self.warp_image.shape[0]  / 2))*xm_per_pix
+        
+
+        return left_curverad, right_curverad, offset
 
     #
     # --------------------------------------------------------------
@@ -232,6 +236,8 @@ class LaneDetector(object):
 
         midpoint, leftx_base, rightx_base = self.histogramSearch(binary_warped)
 
+        self.leftx_base = leftx_base
+        self.rightx_base = rightx_base
 
         # Choose the number of sliding windows
         nwindows = 9
@@ -325,7 +331,7 @@ class LaneDetector(object):
         left_fitx,right_fitx = self.fitXY(ploty,self.best_left_fit,self.best_right_fit)
 
         #out_img = np.dstack((binary_warped, binary_warped, binary_warped))*255
-        init_left_curved, init_right_curved = self.curvature(ploty, left_fitx, right_fitx)
+        init_left_curved, init_right_curved, off_center = self.curvature(ploty, left_fitx, right_fitx)
 
         fontScale = 2
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -334,6 +340,7 @@ class LaneDetector(object):
 
         cv2.putText(self.undist, 'Left Curvature  : {:.2f} m'.format(init_left_curved), (50, 50), font, fontScale, fontColorR, 2)
         cv2.putText(self.undist, 'Right Curvature  : {:.2f} m'.format(init_right_curved), (50, 100), font, fontScale, fontColorR, 2)
+        cv2.putText(self.undist, 'Off Center Position : {:.2f} m'.format(off_center), (50, 150), font, fontScale, fontColorR, 2)
         
 
         """        

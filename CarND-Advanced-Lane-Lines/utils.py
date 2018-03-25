@@ -50,8 +50,8 @@ def threshColoredImageBin(image):
     bin_thresh_min = 20
     bin_thresh_max = 255
     # rgb Yellow colored mask
-    lower = np.array([255,180,0]).astype(np.uint8)
-    upper = np.array([255,255,170]).astype(np.uint8)
+    lower = np.array([0,100,100]).astype(np.uint8)
+    upper = np.array([50,255,255]).astype(np.uint8)
     mask = cv2.inRange(image,lower,upper)
     rgb_y = cv2.bitwise_and(image, image, mask=mask)
     gray = cv2.cvtColor(rgb_y, cv2.COLOR_RGB2GRAY)
@@ -59,8 +59,8 @@ def threshColoredImageBin(image):
 
     #displayImage2x1(image,y_binary,"Original Image","RGB Yellow filter",True)
     # rgb white colored mask
-    lower = np.array([100,100,200]).astype(np.uint8)
-    upper = np.array([255,255,255]).astype(np.uint8)
+    lower = np.array([18,0,180]).astype(np.uint8)
+    upper = np.array([255,80,255]).astype(np.uint8)
     mask = cv2.inRange(image,lower,upper)
     rgb_y = cv2.bitwise_and(image, image, mask=mask)
     gray = cv2.cvtColor(rgb_y, cv2.COLOR_RGB2GRAY)
@@ -72,8 +72,8 @@ def threshColoredImageBin(image):
     hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
 
     # rgb white colored mask
-    lower = np.array([20,120,80]).astype(np.uint8)
-    upper = np.array([45,200,255]).astype(np.uint8)
+    lower = np.array([18,0,180]).astype(np.uint8)
+    upper = np.array([255,80,255]).astype(np.uint8)
     mask = cv2.inRange(hls,lower,upper)
     hls_y = cv2.bitwise_and(image, image, mask=mask)
     hls_y = cv2.cvtColor(hls_y, cv2.COLOR_HLS2RGB)    
@@ -437,3 +437,254 @@ def equYCrCb(img):
     rgb = cv2.cvtColor(histeq, cv2.COLOR_YCrCb2RGB)
     
     return rgb
+
+def ycrcbthresh(img,thr=(230, 255)):
+
+    ycrcb = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
+
+    ch1 = ycrcb[:,:,0]
+    ch2 = ycrcb[:,:,1]
+    ch3 = ycrcb[:,:,2]
+    ch1 = cv2.equalizeHist(ch1)
+
+    binary1 = threshold(ch1, thresh_min=thr[0], thresh_max=thr[1])
+    binary2 = threshold(ch2, thresh_min=thr[0], thresh_max=thr[1])    
+    binary3 = threshold(ch3, thresh_min=thr[0], thresh_max=thr[1])
+
+    return binary1, binary2, binary3
+    
+
+def rgbthresh(img,thr=(230, 255)):
+
+    ch1 = img[:,:,0]
+    ch2 = img[:,:,1]
+    ch3 = img[:,:,2]
+    binary1 = threshold(ch1, thresh_min=thr[0], thresh_max=thr[1])
+    binary2 = threshold(ch2, thresh_min=thr[0], thresh_max=thr[1])    
+    binary3 = threshold(ch3, thresh_min=thr[0], thresh_max=thr[1])
+
+    return binary1, binary2, binary3
+
+def hsvthresh(img,thr=(230, 255)):
+
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    ch1 = img[:,:,0]
+    ch2 = img[:,:,1]
+    ch3 = img[:,:,2]   
+    binary1 = threshold(ch1, thresh_min=thr[0], thresh_max=thr[1])
+    binary2 = threshold(ch2, thresh_min=thr[0], thresh_max=thr[1])    
+    binary3 = threshold(ch3, thresh_min=thr[0], thresh_max=thr[1])
+
+    return binary1, binary2, binary3
+
+def luvthresh(img,thr=(157, 255)):
+
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2Luv)
+    ch1 = img[:,:,0]
+    ch2 = img[:,:,1]
+    ch3 = img[:,:,2]   
+    binary1 = threshold(ch1, thresh_min=thr[0], thresh_max=thr[1])
+    binary2 = threshold(ch2, thresh_min=thr[0], thresh_max=thr[1])    
+    binary3 = threshold(ch3, thresh_min=thr[0], thresh_max=thr[1])
+
+    return binary1, binary2, binary3
+
+def buildYBinary(img, thr_rgb=(230,255), thr_hsv=(230,255), thr_luv=(157,255)):
+
+    rbin1, rbin2, rbin3 = rgbthresh(img,thr_rgb)
+    hbin1, hbin2, hbin3 = hsvthresh(img,thr_hsv)
+    lbin1, lbin2, lbin3 = luvthresh(img,thr_luv)
+    
+    ybin1, ybin2, ybin3 = ycrcbthresh(img,thr_rgb)
+
+
+    binary = np.zeros_like(rbin1)
+    binary[
+        #(rbin1 == 1)
+        (ybin1 == 1)
+        | (hbin3 == 1)
+        | (lbin3 == 1)
+        ] = 1
+    
+    return binary
+
+def buildBinary(img, thr_rgb=(230,255), thr_hsv=(230,255), thr_luv=(157,255)):
+
+    rbin1, rbin2, rbin3 = rgbthresh(img,thr_rgb)
+    hbin1, hbin2, hbin3 = hsvthresh(img,thr_hsv)
+    lbin1, lbin2, lbin3 = luvthresh(img,thr_luv)
+    
+    ybin1, ybin2, ybin3 = ycrcbthresh(img,thr_rgb)
+
+
+    binary = np.zeros_like(rbin1)
+    binary[
+        (rbin1 == 1)
+        | (hbin3 == 1)
+        | (lbin3 == 1)
+        ] = 1
+    
+    return binary
+
+def HLS_S_thresh(img, thr = (80,200)):
+    
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+    ch1 = img[:,:,0]   # H
+    ch2 = img[:,:,1]   # L
+    ch3 = img[:,:,2]   # S
+    binary1 = threshold(ch3,thr[0],thr[1])
+
+    return binary1
+
+def HSV_V_SobelX_thresh(img, thr = (20,100) ):
+    
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    ch1 = img[:,:,0]    # H
+    ch2 = img[:,:,1]    # S
+    ch3 = img[:,:,2]    # V
+
+    yorder = 0
+    xorder = 1
+
+    sobelx = cv2.Sobel(ch3, cv2.CV_64F, xorder, yorder, ksize = 15)
+    sobel = np.absolute(sobelx)
+    sobel = np.uint8( 255 * sobel / np.max(sobel))
+    binary2 = threshold(sobel,thr[0],thr[1])
+    
+    return binary2
+
+def makeLOWCONTRAST(img, thr_HLS=(80,200), thr_HSV=(20,100) ):
+
+    binary1 = HLS_S_thresh(img, thr_HLS)
+    binary2 = HSV_V_SobelX_thresh(img, thr_HSV)
+
+    binLowContrast = np.zeros_like(binary1)
+    binLowContrast[(binary1 == 1) | (binary2 == 1)] = 1
+    
+    return binLowContrast
+
+def birds_eye_transform_challenge(img,  offsetx):
+    """Transforms the viewpoint to a bird's-eye view.
+    Args:
+        img: A numpy image array.
+        points: A list of four points to be flattened.
+            Example: points = [[x1,y1], [x2,y2], [x4,y4], [x3,y3]].
+        offsetx: offset value for x-axis.
+    """
+
+    # revert of shape format shape[1] shape[0]
+    img_size = img[:,:,0].shape[::-1]
+    
+    #pt1 = [offsetx, 0]
+    #pt2 = [img_size[0] - offsetx, 0]
+    #pt3 = [img_size[0] - offsetx, img_size[1]]
+    #pt4 = [offsetx, img_size[1]]
+    #dst = np.float32([pt1, pt2, pt3, pt4])
+    
+    src = np.float32([[585, 450], [203, 720], [1127, 720], [695, 450]])
+    dst = np.float32([[320, 0], [320, 720], [960,720], [960, 0]])    
+    mtx = cv2.getPerspectiveTransform(src, dst)
+    invmtx = cv2.getPerspectiveTransform(dst, src)
+    
+    warped = cv2.warpPerspective(img, mtx, img_size)
+    
+    return invmtx, warped
+
+def color_thresholding(
+    img, ch_type='rgb', 
+    binary=True, plot=False, 
+    thr=(220, 255), save_path=None):
+    """Apply color thresholding.
+    
+    Arg:
+        img (numpy array): numpy image array, should be in `RGB`
+            color space, NOT in `BGR`.
+            
+        ch_type (str): can be 'rgb', 'hls', 'hsv', 'yuv', 'ycrcb',
+            'lab', 'luv'.
+            
+        binary (bool): If `True` then show and returns binary
+            images. If not, returns original images in defined 
+            color spaces.
+            
+        plot: If `True`, shows images.
+        
+        thr: min, max value for threasholding.
+        
+        save_path: if defines, saves figures.
+    """
+    # get channels
+    if ch_type is 'hls':
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+    elif ch_type is 'hsv':
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    elif ch_type is 'yuv':    
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+    elif ch_type is 'ycrcb':
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
+    elif ch_type is 'lab':
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2Lab)
+    elif ch_type is 'luv':
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2Luv)
+    
+    img_ch1 = img[:,:,0]
+    img_ch2 = img[:,:,1]
+    img_ch3 = img[:,:,2]
+
+    # apply thresholding
+    bin_ch1 = np.zeros_like(img_ch1)
+    bin_ch2 = np.zeros_like(img_ch2)
+    bin_ch3 = np.zeros_like(img_ch3)
+
+    bin_ch1[(img_ch1 > thr[0]) & (img_ch1 <= thr[1])] = 1
+    bin_ch2[(img_ch2 > thr[0]) & (img_ch2 <= thr[1])] = 1
+    bin_ch3[(img_ch3 > thr[0]) & (img_ch3 <= thr[1])] = 1
+    
+    if binary:
+        imrep_ch1 = bin_ch1
+        imrep_ch2 = bin_ch2
+        imrep_ch3 = bin_ch3
+    else:
+        imrep_ch1 = img_ch1
+        imrep_ch2 = img_ch2
+        imrep_ch3 = img_ch3
+        
+    return imrep_ch1, imrep_ch2, imrep_ch3
+
+def combined_color_thresholding(
+    img, thr_rgb=(230,255), thr_hsv=(230,255), thr_luv=(157,255)):
+    """Combines color thresholding on different channels
+    
+    Returns a binary image.
+    
+    Args:
+        img: Numpy image array, should be in `RGB` color
+            space.
+        
+        thr_rgb: min and max thresholding values for RGB color
+            space.
+        
+        thr_hsv: min and max thresholding values for HSV color
+            space.
+        
+        thr_luv: min and max thresholding values for LUV color
+            space.
+    """
+    
+    bin_rgb_ch1, bin_rgb_ch2, bin_rgb_ch3 =\
+        color_thresholding(img, ch_type='rgb', thr=thr_rgb)
+        
+    bin_hsv_ch1, bin_hsv_ch2, bin_hsv_ch3 =\
+    color_thresholding(img, ch_type='hsv', thr=thr_hsv)
+    
+    bin_luv_ch1, bin_luv_ch2, bin_luv_ch3 =\
+    color_thresholding(img, ch_type='luv', thr=thr_luv)
+    
+    binary = np.zeros_like(bin_rgb_ch1)
+    binary[
+        (bin_rgb_ch1 == 1)
+        | (bin_hsv_ch3 == 1)
+        | (bin_luv_ch3 == 1)
+        ] = 1
+    
+    return binary
