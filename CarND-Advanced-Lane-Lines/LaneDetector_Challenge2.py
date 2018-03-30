@@ -141,9 +141,18 @@ class LaneDetector(object):
         a, b, c = right_fit_cr
         right_curverad = ((1 + (2*a*y_eval*ym_per_pix + b)**2)**1.5) / np.absolute(2*a)
 
-        centerOfLanes = (left_fitx[-1] + right_fitx[-1])//2
-        veh_pos = self.warp_image.shape[0]//2
-        dx = (veh_pos - centerOfLanes)*xm_per_pix # Positive if on right, Negative on left        
+
+        # for your reference to calculate center of the car positions.
+        #https://discussions.udacity.com/t/where-is-the-vehicle-in-relation-to-the-center-of-the-road/237424/2
+
+        camera_position = self.undist.shape[1]/2
+        lane_center = (left_fitx[-1] + right_fitx[-1])/2
+        center_offset_pixels = abs(camera_position - lane_center)
+        dx = center_offset_pixels * xm_per_pix
+
+        #centerOfLanes = (left_fitx[-1] + right_fitx[-1])//2
+        #veh_pos = self.warp_image.shape[0]//2
+        #dx = (veh_pos - centerOfLanes)*xm_per_pix # Positive if on right, Negative on left        
         #centerOfLanes = (self.leftx_base + self.rightx_base) / 2
         #offset = (centerOfLanes-( self.warp_image.shape[0]  / 2))*xm_per_pix
 
@@ -181,6 +190,22 @@ class LaneDetector(object):
 
         return warped
 
+    def makeBinaryImage2(self, warped):
+
+        hsv = cv2.cvtColor(warped, cv2.COLOR_RGB2HSV)
+        lower = np.array([20,60,60])
+        upper = np.array([38,174, 250])
+        mask_yellow = cv2.inRange(hsv, lower, upper)        
+
+        lower = np.array([202,202,202])
+        upper = np.array([255,255,255])
+        mask_white = cv2.inRange(warped, lower, upper)
+
+        combined_binary = np.zeros_like(mask_yellow)
+        combined_binary[(mask_yellow >= 1) | (mask_white >= 1)] = 1
+
+        return combined_binary
+
     def makeBinaryImage(self,warped):
         # yellow mask
         image_HSV = cv2.cvtColor(warped,cv2.COLOR_RGB2HSV)
@@ -203,6 +228,37 @@ class LaneDetector(object):
         mask_lane = cv2.bitwise_or(mask_yellow,mask_white)
 
         return mask_lane
+    
+    def sobelFilter(self, warped):
+
+        #image = gaussian_blur(warped, kernel=5)
+        image_HLS = cv2.cvtColor(warped,cv2.COLOR_RGB2HLS)
+
+        img_gs = image_HLS[:,:,1]
+        img_abs_x = abs_sobel_thresh(img_gs,'x',15,(50,225))
+        img_abs_y = abs_sobel_thresh(img_gs,'y',15,(50,225))
+        
+        wraped2 = np.copy(cv2.bitwise_or(img_abs_x,img_abs_y))
+
+        img_gs = image_HLS[:,:,2]
+        img_abs_x = abs_sobel_thresh(img_gs,'x',15,(50,255))
+        img_abs_y = abs_sobel_thresh(img_gs,'y',15,(50,255))
+
+        wraped3 = np.copy(cv2.bitwise_or(img_abs_x,img_abs_y))
+
+        image_cmb = cv2.bitwise_or(wraped2,wraped3)
+        
+        return image_cmb
+
+    def combinedBinaryImage(self, image):
+        
+        mask_lane = self.makeBinaryImage2(image)
+        #image_cmb = self.sobelFilter(image)
+        #image_cmb1 = np.zeros_like(image_cmb)
+        #image_cmb1[(mask_lane>=.5)|(image_cmb>=.5)]=1
+
+        return mask_lane
+
 
     def histogramSearch(self,binary_warped):
 
@@ -345,9 +401,31 @@ class LaneDetector(object):
 
                     rightx_current = np.int(np.mean(nonzerox[good_right_inds]))
 
+            length_left_lane_ids = len(left_lane_inds) 
+            length_right_lane_ids = len(right_lane_inds)
+
             # Concatenate the arrays of indices to make flat array
             left_lane_inds = np.concatenate(left_lane_inds)
             right_lane_inds = np.concatenate(right_lane_inds)
+
+            # for initial setup 
+            if length_left_lane_ids > 5 and length_right_lane_ids > 5:
+
+                leftx_init = nonzerox[left_lane_inds]
+                lefty_init = nonzeroy[left_lane_inds] 
+                rightx_init = nonzerox[right_lane_inds]
+                righty_init = nonzeroy[right_lane_inds]
+
+                left_fit = np.polyfit(lefty_init, leftx_init, 2)
+                right_fit = np.polyfit(righty_init, rightx_init, 2)
+
+                self.good_curve_left_fit.append( left_fit   )
+                self.good_curve_right_fit.append(  right_fit  )
+
+                # best fit parameters LEFT
+                self.best_left_fit = np.mean(  self.good_curve_left_fit[-10:], axis=0)  
+                self.best_right_fit = np.mean(  self.good_curve_right_fit[-10:], axis=0)  
+
 
             if self.left_outlier or self.right_outlier:
                 self.detected = False
@@ -393,6 +471,19 @@ class LaneDetector(object):
         left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
         right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
 
+        x_std_left = np.std( leftx )
+        x_std_right = np.std( rightx )
+
+        x_std_left_fitx = np.std( left_fitx )
+        x_std_right_fitx = np.std( right_fitx )
+
+
+        #print( x_std_left, x_std_right, x_std_left_fitx, x_std_right_fitx  )
+
+        if x_std_left > 50. or x_std_right > 50.:
+            self.detected = False
+            print(" out of standard deviation " , x_std_left, x_std_right)
+
         #plt.imshow(out_img)                
         #plt.plot(left_fitx, ploty, color='yellow')
         #plt.plot(right_fitx, ploty, color='yellow')
@@ -407,44 +498,29 @@ class LaneDetector(object):
         init_left_curved, init_right_curved, off_center = self.curvature(ploty, left_fitx, right_fitx)
 
         #print("curvature :",  init_left_curved,init_right_curved)
-        if (init_left_curved > 300 and init_left_curved < 2000) or self.initial_frame:
+        if (init_left_curved > 300 and init_left_curved < 2000):
             self.good_curve_left_fit.append( left_fit   )
-            left_fit = np.mean(  self.good_curve_left_fit[-30:], axis=0)  
+            left_fit = np.mean(  self.good_curve_left_fit[-10:], axis=0)  
             self.best_left_fit = left_fit
         else:
             left_fit = self.best_left_fit
+            self.detected = False
+            print(" left lane out of range! ")
 
-        if (init_right_curved > 300 and init_right_curved < 2000) or self.initial_frame:
+        if (init_right_curved > 300 and init_right_curved < 2000):
             self.good_curve_right_fit.append(  right_fit  )
-            right_fit = np.mean(  self.good_curve_right_fit[-30:], axis=0)  
+            right_fit = np.mean(  self.good_curve_right_fit[-10:], axis=0)  
             self.best_right_fit = right_fit
         else:
             right_fit = self.best_right_fit
+            self.detected = False
+            print(" right lane out of range !")
 
 
         left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
         right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
         init_left_curved, init_right_curved, off_center = self.curvature(ploty, left_fitx, right_fitx)
     
-
-
-
-        #self.current_left_fit, self.current_right_fit = self.fitting(lefty,leftx,righty,rightx)
-        #self.left_fit_array.append( self.current_left_fit )
-        #self.right_fit_array.append( self.current_right_fit )
-
-        #length_left_fit = len(self.left_fit_array)
-        #length_right_fit = len(self.right_fit_array)
-
-        #lastn = 30
-        #self.best_left_fit = np.mean(  self.left_fit_array[-min(lastn,length_left_fit):], axis=0)  
-        #self.best_right_fit = np.mean(  self.right_fit_array[-min(lastn,length_right_fit):], axis=0)  
-        
-        # calculate best left fit from previus frame
-        #left_fitx,right_fitx = self.fitXY(ploty,self.best_left_fit,self.best_right_fit)
-
-
-
         fontScale = 2
         font = cv2.FONT_HERSHEY_SIMPLEX
         fontColor = (255, 255, 255)
@@ -485,7 +561,9 @@ class LaneDetector(object):
         self.undist = undist_ops(x)
 
         warped = self.makeWarpImage(self.undist)
-        binLowContrast = self.makeBinaryImage(warped)
+        #binLowContrast = self.makeBinaryImage(warped)
+        binLowContrast = self.combinedBinaryImage(warped)
+        
         # line_detector accepts the warped binary image 
         res = self.line_detector(binLowContrast)
 
@@ -496,22 +574,25 @@ def main():
     lane_detector = LaneDetector()
 
     #filenames = sorted( os.listdir("./challenge") )
-    imread_ops = lambda x: imread( os.path.join("./challenge",x) )
-    undist_ops = lambda img:cv2.undistort(img, mtx, dist, None, mtx)
+    imread_ops = lambda x: imread( os.path.join("./project",x) )
+    #undist_ops = lambda img:cv2.undistort(img, mtx, dist, None, mtx)
 
+    filename_ops = lambda r:'frame{:d}.jpg'.format(r)
     images = {}
-    for r in range(30):
-        f = 'frame{:d}.jpg'.format(r) 
-        images[f] = imread_ops(f)
+    for  r in range(1259):
+        images[r] = imread_ops(filename_ops( r )  )
 
-    filenames = sorted( images.keys() )
-    for idx, (filename, image) in enumerate( sorted( images.items(), key=lambda x:x[0]  ) ): 
+    #filenames = sorted( images.keys() )
+    for idx, (index, image) in enumerate( sorted( images.items(), key=lambda x:x[0]  ) ): 
 
-        print("image index : ", filename, image.shape )
+        print("image index : ", filename_ops(idx) , image.shape )
 
         test_result = lane_detector.image_pipeline(image)
-        plt.imshow(test_result)
-        plt.show()
+        
+        plt.imsave("./project/result/frame%d.jpg" % idx, test_result)     # save frame as JPEG file
+
+        #plt.imshow(test_result)
+        #plt.show()
 
 if __name__ == "__main__":
     main()
