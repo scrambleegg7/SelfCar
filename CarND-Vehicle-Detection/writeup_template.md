@@ -15,14 +15,12 @@ The goals / steps of this project are the following:
 * Estimate a bounding box for vehicles detected.
 
 [//]: # (Image References)
-[image1]: ./examples/car_not_car.png
-[image2]: ./examples/HOG_example.jpg
-[image3]: ./examples/sliding_windows.jpg
-[image4]: ./examples/sliding_window.jpg
-[image5]: ./examples/bboxes_and_heat.png
-[image6]: ./examples/labels_map.png
-[image7]: ./examples/output_bboxes.png
-[video1]: ./project_video.mp4
+[car_noncar]: ./result_images/car_noncar.jpeg
+[hog_gray]: ./result_images/hog_gray.jpeg
+[hog_car]: ./result_images/hog_ycrcb_car.jpeg
+[hog_ncar]: ./result_images/hog_ycrcb_ncar.jpeg
+[hog_car9]: ./result_images/hog_ycrcb9_car.jpeg
+
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
@@ -34,28 +32,63 @@ The goals / steps of this project are the following:
 
 You're reading it!
 
-### Histogram of Oriented Gradients (HOG)
+# Histogram of Oriented Gradients (HOG)
 
-#### 1. Explain how (and identify where in your code) you extracted HOG features from the training images.
+## 1. Explain how (and identify where in your code) you extracted HOG features from the training images.
 
-The code for this step is contained in the first code cell of the IPython notebook (or in lines # through # of the file called `some_file.py`).  
+`All program codes are put into one ipython (jupyter notebook.)`
+***
 
-I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
+## 1.1 Loading Training Data 
 
-![alt text][image1]
+First of all, all training data pack is downloaded from following site.
 
-I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
+[Vehicle]\
+https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/vehicles.zip \
+[Non Vehicle]\
+https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/non-vehicles.zip
 
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
+I started reading in all the `vehicle` and `non-vehicle` images and then show images table on jupyter notebook, which displays **CAR** and **NON CAR** images side by side. Left side is **CAR** and Right side is **NON CAR** images.
+Please take a look at below example respectively.
+Note that in order to save display and image processing time, I have just picked up only 10 random images from CARS and NON CARS images.
 
 
-![alt text][image2]
+![alt text][car_noncar]
 
-#### 2. Explain how you settled on your final choice of HOG parameters.
+In the next step to investigate how HOG image is working to extract normal image, I have setup following standard values for each main parameters. 
 
-I tried various combinations of parameters and...
+| Parameter name  | Setup Values    |
+|:-------------:|:-------------:|
+| orientations  | 9 |
+| pix_per_cell     | 8  ,8  |
+| cell_per_block    | 2, 2  |
 
-#### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
+As first experiment, I have extracted HOG features from GRAY image (`converted with cv2.cvtColor(im , cv2.COLOR_RGB2GRAY)`), which is identical instructions to text books. **(#20 scikit HOG image)** 
+
+
+![alt text][hog_gray]
+
+Another example using the `YCrCb` color space and use same HOG parameters used in HOG Gray image extraction.
+Please take a look at the below images.
+
+**HOG YCrCb Car**
+![alt text][hog_car]
+**HOG YCrCb Non Car**
+![alt text][hog_ncar]
+
+
+# 2. Explain how you settled on your final choice of HOG parameters.
+
+As explained in previous section, I have decided to use **Y** channel of **YCrCb** and `orientations=9`, `pixel_per_cell=8`, `cell_per_block=2`. 
+Since pixell_per_cell increased to `4`, we could get much precious feature points and densed bit image points on HOG image. As a result to change parameters, it is by no means cerfitication to get more accurate outcome for image identification. Thus, pixel_per_cell `2` would be best scenario for the time being upto we coordinate training process. 
+However, those parameter combinations would be implemented so that classifier can reflect best score from training set of data.   
+
+Here is sample table to show pixel_per_cell `4`.
+![alt text][hog_car9]
+
+
+
+# 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
 I trained a linear SVM using...
 
@@ -65,6 +98,7 @@ I trained a linear SVM using...
 
 I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
 
+**Car HOG**
 ![alt text][image3]
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
