@@ -32,7 +32,7 @@ class TrainDataClass(object):
 
     def load_images(self):
 
-        vehicle_base = "./vehicles"
+        vehicle_base = "./sample_data/vehicles"
         vehicle_dirs = os.listdir(vehicle_base)
         vehicle_dirs = [v for v in vehicle_dirs if "DS_Store" not in v]
 
@@ -45,7 +45,7 @@ class TrainDataClass(object):
 
         print("Number of Cars Data ..", len(self.cars))
 
-        non_vehicle_base = "./non-vehicles"
+        non_vehicle_base = "./sample_data/non-vehicles"
         non_vehicle_dirs = os.listdir(non_vehicle_base)
         non_vehicle_dirs = [v for v in non_vehicle_dirs if "DS_Store" not in v]
 
@@ -77,11 +77,11 @@ class TrainDataClass(object):
         rc = np.random.permutation( len( self.cars) )
         rnc = np.random.permutation( len(self.non_cars ))
 
-        rc = rc[:10]
-        rnc = rnc[:10]
+        #rc = rc[:10]
+        #rnc = rnc[:10]
 
-        self.car_images = car_images[rc]
-        self.non_car_images = non_car_images[rnc]
+        self.car_images = car_images
+        self.non_car_images = non_car_images
     
     def ops_set(self):
         self.gray_ops = lambda im: cv2.cvtColor(im , cv2.COLOR_RGB2GRAY)

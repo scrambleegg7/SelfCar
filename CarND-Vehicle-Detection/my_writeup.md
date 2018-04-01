@@ -93,6 +93,9 @@ Here is sample table to show pixel_per_cell `4`.
 
 # 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
+## 3.1 Color Feature Extraction
+***
+
 First of all, I have provide the training set, X and y, which consists of CAR/NON CAR features and labels for preparation of the training.
 The features X is build 1) scaled down to 32x32 and make histogram summary (bin scaling = 32), then concatenate those array data to combined 
 into single features.
@@ -189,7 +192,53 @@ print('Test Accuracy of SVC = ', svc.score(scaled_X_test, y_test))
 Test Accuracy of SVC =  0.9504504504504504
 ```
 
-### Sliding Window Search
+## 3.2 HOG Feature Extraction
+
+Now I have added one additional feature layer extracting HOG features from raw image.
+So, final features style is 
+binScale + histogram + HOG features = total 4932 byte features
+As a result of running Support Vector algo with the defaut parameters, I was able to show best accuracy score performance 
+from those features data set. I got 98% accuracy !!
+
+
+```
+eprecated and will be changed to `L2-Hys` in v0.15
+  'be changed to `L2-Hys` in v0.15', skimage_deprecation)
+ loaded car features --> 8792 (4932,)
+ loaded non car features --> 8968 (4932,)
+  Buildng X y training data set .....
+ Spliting data set to train == 80% / test == 20%
+ Scaling (Normalized data) ....
+Suuport Vector training starting ....
+ Check scoring ....
+Test Accuracy of SVC =  0.9817004504504504
+```
+
+## 3.3 YCrCb
+YCrCb is more robust image data set to distinguish color scheme rather than RGB. When I applied YCrCb converted image and build HOG features extraction for all channels, `the accuracy score is dramatically increased up to 99%` !! (features byte is extended to 8640 bytes)
+
+```
+(carnd-term1) milano:CarND-Vehicle-Detection donchan$ python svc_train.py --color="YCrCb" --hog_channel=3
+------------------------------
+* Color Scheme ... * YCrCb
+* HOG channel ... * 3
+------------------------------
+Number of Cars Data .. 8792
+Number of Non Cars Data .. 8968
+/Users/donchan/anaconda3/envs/carnd-term1/lib/python3.5/site-packages/skimage/feature/_hog.py:119: skimage_deprecation: Default value of `block_norm`==`L1` is deprecated and will be changed to `L2-Hys` in v0.15
+  'be changed to `L2-Hys` in v0.15', skimage_deprecation)
+ loaded car features --> 8792 (8460,)
+ loaded non car features --> 8968 (8460,)
+  Buildng X y training data set .....
+ Spliting data set to train == 80% / test == 20%
+ Scaling (Normalized data) ....
+Suuport Vector training starting ....
+ Check scoring ....
+Test Accuracy of SVC =  0.9912725225225225
+```
+
+
+# Sliding Window Search
 
 #### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
