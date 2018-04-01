@@ -20,6 +20,9 @@ The goals / steps of this project are the following:
 [hog_car]: ./result_images/hog_ycrcb_car.jpeg
 [hog_ncar]: ./result_images/hog_ycrcb_ncar.jpeg
 [hog_car9]: ./result_images/hog_ycrcb9_car.jpeg
+[X_rgb]: ./result_images/X_rgb.jpeg
+[X_y]: ./result_images/X_ycrcb.jpeg
+
 
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
@@ -80,7 +83,7 @@ Please take a look at the below images.
 # 2. Explain how you settled on your final choice of HOG parameters.
 
 As explained in previous section, I have decided to use **Y** channel of **YCrCb** and `orientations=9`, `pixel_per_cell=8`, `cell_per_block=2`. 
-Since pixell_per_cell increased to `4`, we could get much precious feature points and densed bit image points on HOG image. As a result to change parameters, it is by no means cerfitication to get more accurate outcome for image identification. Thus, pixel_per_cell `2` would be best scenario for the time being upto we coordinate training process. 
+Since pixell_per_cell increased to `4`, we could get much precious feature points and densed bit image points on HOG image. As a result to change parameters, it by no means gives credits to get more accurate outcome for image identification. Thus, pixel_per_cell `2` would be best scenario for the time being upto we coordinate training process. Als, its image is robust to find frame of the car and the non-car objects.
 However, those parameter combinations would be implemented so that classifier can reflect best score from training set of data.   
 
 Here is sample table to show pixel_per_cell `4`.
@@ -90,7 +93,101 @@ Here is sample table to show pixel_per_cell `4`.
 
 # 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
-I trained a linear SVM using...
+First of all, I have provide the training set, X and y, which consists of CAR/NON CAR features and labels for preparation of the training.
+The features X is build 1) scaled down to 32x32 and make histogram summary (bin scaling = 32), then concatenate those array data to combined 
+into single features.
+I have tried to extract 2 different features patterns, one is from RGB image, another one is from YCrCb conversion image data.
+Following is sample data show.
+
+**RGB** \
+![alt text][X_rgb]
+**YCrCb** \
+![alt text][X_y]
+
+1st version Feature extraction algorythm is exerted from text book as following.
+I choosed "RGB" for raw_image setting. (image is converteed to none of other types.)
+
+```
+def bin_spatial(img, size=(32, 32)):
+    # Use cv2.resize().ravel() to create the feature vector
+    features = cv2.resize(img, size).ravel() 
+    # Return the feature vector
+    return features
+
+
+# Define a function to compute color histogram features  
+def color_hist(img, nbins=32, bins_range=(0, 256)):
+    # Compute the histogram of the color channels separately
+    channel1_hist = np.histogram(img[:,:,0], bins=nbins, range=bins_range)
+    channel2_hist = np.histogram(img[:,:,1], bins=nbins, range=bins_range)
+    channel3_hist = np.histogram(img[:,:,2], bins=nbins, range=bins_range)
+    # Concatenate the histograms into a single feature vector
+    hist_features = np.concatenate((channel1_hist[0], channel2_hist[0], channel3_hist[0]))
+    # Return the individual histograms, bin_centers and feature vector
+    return hist_features
+
+# Define a function to extract features from a list of images
+# Have this function call bin_spatial() and color_hist()
+def extract_features(imgs, cspace='RGB', spatial_size=(32, 32),
+                        hist_bins=32, hist_range=(0, 256)):
+    # Create a list to append feature vectors to
+    features = []
+    # Iterate through the list of images
+    for image in imgs:
+        # Read in each one by one
+        #image = mpimg.imread(file)
+        # apply color conversion if other than 'RGB'
+        if cspace != 'RGB':
+            if cspace == 'HSV':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+            elif cspace == 'LUV':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2LUV)
+            elif cspace == 'HLS':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
+            elif cspace == 'YUV':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
+            elif cspace == 'YCrCb':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
+
+        else: feature_image = np.copy(image)      
+        # Apply bin_spatial() to get spatial color features
+        spatial_features = bin_spatial(feature_image, size=spatial_size)
+        # Apply color_hist() also with a color space option now
+        hist_features = color_hist(feature_image, nbins=hist_bins, bins_range=hist_range)
+        # Append the new feature vector to the features list
+        features.append(np.concatenate((spatial_features, hist_features)))
+    # Return list of feature vectors
+    return features
+        
+```
+
+After building up X, y, I have applied svc training process to gain best score performance of the model.
+Initially, I obtained 95% accuracy score from SVC binary classification.
+
+```
+## Train / Test Data split 
+# Split up data into randomized training and test sets
+rand_state = np.random.randint(0, 100)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=rand_state)
+
+# standarized (normalized data)
+
+X_scaler = StandardScaler().fit(X_train)
+# Apply the scaler to both X_train and X_test
+scaled_X_train = X_scaler.transform(X_train)
+scaled_X_test = X_scaler.transform(X_test)
+
+from sklearn.svm import LinearSVC
+# Use a linear SVC (support vector classifier)
+svc = LinearSVC()
+# Train the SVC
+svc.fit(scaled_X_train, y_train)
+
+print('Test Accuracy of SVC = ', svc.score(scaled_X_test, y_test))
+
+Test Accuracy of SVC =  0.9504504504504504
+```
 
 ### Sliding Window Search
 
