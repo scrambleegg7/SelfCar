@@ -22,6 +22,8 @@ The goals / steps of this project are the following:
 [hog_car9]: ./result_images/hog_ycrcb9_car.jpeg
 [X_rgb]: ./result_images/X_rgb.jpeg
 [X_y]: ./result_images/X_ycrcb.jpeg
+[grid64]: ./result_images/grid64.jpeg
+[grid128]: ./result_images/grid128.jpeg
 
 
 
@@ -43,6 +45,11 @@ You're reading it!
 ***
 
 ## 1.1 Loading Training Data 
+
+>
+reference about HOG:\
+http://www.learnopencv.com/histogram-of-oriented-gradients/
+
 
 First of all, all training data pack is downloaded from following site.
 
@@ -240,7 +247,27 @@ Test Accuracy of SVC =  0.9912725225225225
 
 # Sliding Window Search
 
-#### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
+## 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
+
+
+## 1.1 searched area
+
+At first trial to set default parameters (32x32 spatial and 64x64 sliding window size) with the sliding window technique,
+the program detects car from simple grid by sliding widow 32 pixel. Howver, this solid approach incorectly finds car and non car object on some of test images. I assumed that while program constanly moving from left to right and from top to bottom in entire image, unnecessary object like tree and sky is included in the window search area. It results in detecting non car object as car since extracted features from searched windows is similar to training features of cars and brings out the unpredictable error from support vector machine.
+The below windows show grid matrix by sliding windows 64x64.
+
+As visual confirmation, we understand that 0-300 on y-axis and 0-500 on x-axis does not show any car objects. So we should search X starting x-axis from 500 pixel to end of X-axis and y-axis from 300 pixel to end of end of y-axis. 
+
+**YCrCb 64x64 sliding window grid** \
+![alt text][grid64]
+
+## 1.2 windows scaling size 
+
+Taking a look at the above grid image, some of cars are pictured with bigger size than grid cell, thus, support vector machine algorythm hardly detects exact car from splitted area. Eg. white car is splitted with at least 16 grid cells of 64x64 image block. Remeber that our training data comes from 64x64 full car image, which is none of partial body image, thus algo occationally fails to detect car. 
+Hence we changed the search window size to 128 like this. 
+
+![alt text][grid128]
+
 
 I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
 

@@ -70,7 +70,7 @@ def build_svc_model(color, hog_channel_):
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=rand_state)
 
-
+    print(" save X / y train test data ....")
     np.save("X_train.npy", X_train  )
     np.save("X_test.npy", X_test  )
     np.save("y_train.npy", y_train  )
