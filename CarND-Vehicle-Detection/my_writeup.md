@@ -23,8 +23,10 @@ The goals / steps of this project are the following:
 [X_rgb]: ./result_images/X_rgb.jpeg
 [X_y]: ./result_images/X_ycrcb.jpeg
 [grid64]: ./result_images/grid64.jpeg
-[grid128]: ./result_images/grid128.jpeg
-
+[gridseparate]: ./result_images/grid_separate.jpeg
+[windows]: ./result_images/windows.jpeg
+[carfound]: ./result_images/car_found_test_images.jpeg
+[heatmap]: ./result_images/heatmap.jpeg
 
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
@@ -38,6 +40,8 @@ The goals / steps of this project are the following:
 You're reading it!
 
 # Histogram of Oriented Gradients (HOG)
+
+Program Source:(vehicle_data_exploration.ipynb)
 
 ## 1. Explain how (and identify where in your code) you extracted HOG features from the training images.
 
@@ -246,70 +250,124 @@ Test Accuracy of SVC =  0.9912725225225225
 
 
 # Sliding Window Search
+Program source:
+(sliding_window_car_detector-.ipynb)
 
 ## 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
 
 ## 1.1 searched area
 
+**64x64 sliding window grid** \
+![alt text][grid64]
+
+
 At first trial to set default parameters (32x32 spatial and 64x64 sliding window size) with the sliding window technique,
 the program detects car from simple grid by sliding widow 32 pixel. Howver, this solid approach incorectly finds car and non car object on some of test images. I assumed that while program constanly moving from left to right and from top to bottom in entire image, unnecessary object like tree and sky is included in the window search area. It results in detecting non car object as car since extracted features from searched windows is similar to training features of cars and brings out the unpredictable error from support vector machine.
 The below windows show grid matrix by sliding windows 64x64.
 
-As visual confirmation, we understand that 0-300 on y-axis and 0-500 on x-axis does not show any car objects. So we should search X starting x-axis from 500 pixel to end of X-axis and y-axis from 300 pixel to end of end of y-axis. 
+As visual confirmation, we understand that pixel range 0-300 on y-axis does not show any car objects. So we should search y-axis from 300 pixel to end of end of y-axis. In my case, I have searched image with following range parameters by changing crop window size (eg. 75 to 300 pixels.)
 
-**YCrCb 64x64 sliding window grid** \
-![alt text][grid64]
 
 ## 1.2 windows scaling size 
 
 Taking a look at the above grid image, some of cars are pictured with bigger size than grid cell, thus, support vector machine algorythm hardly detects exact car from splitted area. Eg. white car is splitted with at least 16 grid cells of 64x64 image block. Remeber that our training data comes from 64x64 full car image, which is none of partial body image, thus algo occationally fails to detect car. 
 Hence we changed the search window size to 128 like this. 
+As instructted in above section, I have provided 4 difffent size of croped windows.
 
-![alt text][grid128]
+```
+    # extra large boxes
+    xl_windows = slide_window(
+        image, x_start_stop=[30, 1250], y_start_stop=[400, 700],
+        xy_window=(300, 300), xy_overlap=(0.5, 0.5))
+
+    # large boxes
+    l_windows = slide_window(
+        image, x_start_stop=[30, 1250], y_start_stop=[400, 600],
+        xy_window=(200, 200), xy_overlap=(0.6, 0.5))
+
+    # medium boxes
+    m_windows = slide_window(
+        image, x_start_stop=[30, 1250], y_start_stop=[400, 650],
+        xy_window=(125, 125), xy_overlap=(0.7, 0.5))
+
+    # small boxes
+    s_windows = slide_window(
+        image, x_start_stop=[300, 1000], y_start_stop=[400, 550],
+        xy_window=(75, 75), xy_overlap=(0.8, 0.5))
+
+```
+
+**Result generated with above windows definition**
+![alt text][windows]
+
+Thus, object is searched from those different 4 type windows.
+
+![alt text][gridseparate]
 
 
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
+## 1.3 Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
-**Car HOG**
-![alt text][image3]
 
-#### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
-Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
+I have searched on scales using RGB 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result. The left pane of the below images indicates `hotwindows` found by `single_img_features` function, so that multiple cyan color boxes are detected on test images. Right pane of image tables shows the result rectangle drawn by `add_heatmap` and  `apply_threshold` function. Finally the false positives are omitted with following function.
 
-![alt text][image4]
+```
+def add_heat(heatmap, bbox_list):
+    # Iterate through list of bboxes
+    for box in bbox_list:
+        # Add += 1 for all pixels inside each bbox
+        # Assuming each "box" takes the form ((x1, y1), (x2, y2))
+        heatmap[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 1
+
+    # Return updated heatmap
+    return heatmap# Iterate through list of bboxes
+    
+def apply_threshold(heatmap, threshold):
+    # Zero out pixels below the threshold
+    heatmap[heatmap <= threshold] = 0
+    # Return thresholded map
+    return heatmap
+
+
+``` 
+
+![alt text][carfound]
+
+### The below images show heat map
+![alt text][heatmap]
+
+
+# Video Implementation
+
+## 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
+
+Here's a [link to my video result](./project_video_sliding_found3.mp4)
+
+
+## 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
+
+As explained in the above section, hot_windows are searched and cropped once sliding window technique detect car object by support vector machine algorithm **predicting it is a car object**.
+
+Those hot_windows are marked as "heat=1" in `add_heat` function, then heatmap matrix is build based on founded car objects. When multiple car ojbects detected with hot_windows, heatmap is inrecemented to +1, so that overlapping rectangle area have much stronger heat mapping meaning high value bigger than 1. Assuming high value of heatmap indicates **car**, we can drop any other heat bit map, which is less probabilities of identifying **car**. That is why we could set 0 with `apply_threshold` function. This is simple algorithm filtering for false positives. 
+
+## 3. Buffer to save previous images
+
+It is not big issue to generate heatmap and detecting rectangle image as car objects from single image with my simple alogrithm using `add_heat` and other significat alogrithm. When we feed video image into first version of pipeline process used for single image, it is inadequate to draw the rectangle on video frame. In many frames, we see fast moving squre plotting with changing size of rectangle, which size is not stabilized. This is not good process.
+Thus I have build up another class `Vehicle Tracking`, which holds last 40 frames (around 1.6s) of video frames, then smoothing rectangle area for car objects. 
+Once installed this technique, we can see very stable rectangle moving on video image.   
+
 ---
 
-### Video Implementation
-
-#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
-Here's a [link to my video result](./project_video.mp4)
-
-
-#### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
-
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
-
-Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
-
-### Here are six frames and their corresponding heatmaps:
-
-![alt text][image5]
-
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
-
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
-
-
-
----
-
-### Discussion
+## Discussion
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+1. Color Space parameter
+As the ground true answer what is best combination to select color space, I have tried to find best combination along with spatial sizes histogram bin sizes many times. In my case, it almost took around 2 weeks to search best parameters. Also it is manual process to need the visual confirmation by human. In such programming
 
+2. Speed to generate rectangle boxes
+It takes around over 20-30 minutes to complete car detection pipeline from only 50 seconds video file, thus we need to find other state -of-the-art techniques (eg. YOLO ?) corresponds to real world, where we must build real time object detection processing.  
+
+3. Video Process.
+Pipeline used for single image process is not useful to make video frame pipeline. Simply streaming video frame (project_video.mp4 -> 25 fps) into pipeline, it does not generate any good results to show rectangle emcompassed the car objects. Thus, I have build up another class to hold and smooth previous image frame.  
